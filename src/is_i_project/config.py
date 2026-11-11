@@ -6,6 +6,7 @@ class Config:
 
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    FLASK_RUN_PORT = os.getenv('PORT', 5000)
 
 
 class DevelopmentConfig(Config):

@@ -13,7 +13,7 @@
     </div>
   </div>
 
-  <form method="POST" action="{{ url_for('question_create') }}" data-validate id="new-question-form">
+  <form method="POST" action="{{ url_for('question_new') }}" data-validate id="new-question-form" novalidate>
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
     <input type="hidden" name="tags" id="tags-hidden" />
 

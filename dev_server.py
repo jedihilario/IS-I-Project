@@ -199,11 +199,24 @@ def home():
 @app.route("/preguntas/<int:question_id>")
 def question_detail(question_id):
     pregunta = next((q for q in SAMPLE_QUESTIONS if q.id == question_id), SAMPLE_QUESTIONS[0])
-    respuestas = [
-        mock_respuesta(1, "Podés implementar el patrón Strategy definiendo una clase abstracta `IEstrategia` con el método `ejecutar()`, y luego clases concretas que lo implementen.", es_aceptada=True, votos=12),
-        mock_respuesta(2, "Aquí hay un ejemplo completo con Python:\n\n```python\nclass AutorIA:\n    def __init__(self, estrategia):\n        self.estrategia = estrategia\n    \n    def generar(self, prompt):\n        return self.estrategia.generarContenido(prompt)\n```", es_ia=True, votos=8),
-        mock_respuesta(3, "También podés usar `Protocol` de Python 3.8+ en lugar de ABCMeta para definir la interfaz, es más pythónico.", votos=5),
-    ]
+    if pregunta.respuestas_count == 0 and not pregunta.tiene_respuesta_ia:
+        respuestas = []
+    elif pregunta.tiene_respuesta_ia and pregunta.respuestas_count == 0:
+        respuestas = [
+            mock_respuesta(
+                999,
+                f"Respuesta generada automáticamente por IA para tu consulta sobre: <strong>{pregunta.titulo}</strong>.",
+                es_ia=True,
+                votos=1
+            )
+        ]
+        pregunta.respuestas_count = 1
+    else:
+        respuestas = [
+            mock_respuesta(1, "Podés implementar el patrón Strategy definiendo una clase abstracta `IEstrategia` con el método `ejecutar()`, y luego clases concretas que lo implementen.", es_aceptada=True, votos=12),
+            mock_respuesta(2, "Aquí hay un ejemplo completo con Python:\n\n```python\nclass AutorIA:\n    def __init__(self, estrategia):\n        self.estrategia = estrategia\n    \n    def generar(self, prompt):\n        return self.estrategia.generarContenido(prompt)\n```", es_ia=True, votos=8),
+            mock_respuesta(3, "También podés usar `Protocol` de Python 3.8+ en lugar de ABCMeta para definir la interfaz, es más pythónico.", votos=5),
+        ]
     return render_template("question_detail.html",
         pregunta=pregunta,
         respuestas=respuestas,
@@ -212,10 +225,34 @@ def question_detail(question_id):
     )
 
 
-@app.route("/preguntas/nueva", methods=["GET", "POST"])
+@app.route("/preguntas/nueva", methods=["GET", "POST"], endpoint="question_new")
+@app.route("/preguntas/crear", methods=["POST"], endpoint="question_create")
 def question_new():
     if request.method == "POST":
-        return redirect(url_for("home"))
+        titulo = request.form.get("titulo", "").strip()
+        cuerpo = request.form.get("cuerpo", "").strip()
+        categoria = request.form.get("categoria", "").strip() or "General"
+        raw_tags = request.form.get("tags", "").strip()
+        tags = [t.strip() for t in raw_tags.split(",") if t.strip()] if raw_tags else ["general"]
+        solicitar_ia = bool(request.form.get("solicitar_ia"))
+
+        nueva_id = max((q.id for q in SAMPLE_QUESTIONS), default=0) + 1
+        nueva_q = mock_pregunta(
+            id=nueva_id,
+            titulo=titulo or "Pregunta sin título",
+            cuerpo=f"<p>{cuerpo}</p>" if cuerpo else "",
+            tags=tags,
+            categoria=categoria,
+            votos=0,
+            respuestas_count=0,
+            tiene_aceptada=False,
+            tiene_respuesta_ia=solicitar_ia,
+            dias_atras=0,
+        )
+        nueva_q.autor = CURRENT_USER
+        SAMPLE_QUESTIONS.insert(0, nueva_q)
+        return redirect(url_for("question_detail", question_id=nueva_q.id))
+
     return render_template("question_new.html", categorias=CATEGORIAS)
 
 

@@ -400,6 +400,13 @@ function initFormValidation() {
           valid = false;
           field.style.borderColor = 'var(--red)';
           if (errEl) errEl.textContent = 'Este campo es requerido';
+
+          // Si el campo está en el tab de escritura y está oculto, volver a activarlo
+          const writeArea = form.querySelector('#write-area');
+          const writeTab  = form.querySelector('#write-tab');
+          if (writeArea && writeArea.contains(field) && writeArea.classList.contains('hidden') && writeTab) {
+            writeTab.click();
+          }
         } else {
           field.style.borderColor = '';
           if (errEl) errEl.textContent = '';

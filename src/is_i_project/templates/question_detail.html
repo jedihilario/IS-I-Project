@@ -118,7 +118,7 @@
     <section aria-label="Escribir respuesta" id="answer-form-section" style="margin-top:var(--space-8);">
       <div class="section-divider">Tu respuesta</div>
 
-      <form method="POST" action="{{ url_for('answer_create', question_id=pregunta.id) }}" class="form-card" data-validate id="answer-form">
+      <form method="POST" action="{{ url_for('answer_create', question_id=pregunta.id) }}" class="form-card" data-validate id="answer-form" novalidate>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 
         <!-- Write / Preview tabs -->
@@ -144,6 +144,7 @@
               <span class="form-hint">Soporte básico de Markdown</span>
               <span id="body-counter" style="font-size:var(--text-xs);color:var(--text-muted);">0 / 10000</span>
             </div>
+            <span class="form-error" id="question-body-error" role="alert"></span>
           </div>
         </div>
 
@@ -174,6 +175,12 @@
 
   <!-- ─── SIDEBAR DERECHO ─── -->
   <aside class="content-sidebar" aria-label="Info adicional">
+    <div style="margin-bottom:var(--space-4);">
+      <a href="{{ url_for('question_new') }}" class="btn btn-primary btn-block" id="btn-ask-from-detail">
+        Nueva pregunta
+      </a>
+    </div>
+
     <!-- Similar questions -->
     {% if preguntas_similares %}
     <div class="widget" id="widget-similar">

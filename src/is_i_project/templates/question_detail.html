@@ -25,14 +25,14 @@
       <h1 class="question-detail-title">{{ pregunta.titulo }}</h1>
 
       <div class="question-detail-meta">
-        <span class="meta-item">🕒 {{ pregunta.fecha_publicacion.strftime('%d de %B de %Y, %H:%M') }}</span>
-        <span class="meta-item">👁️ {{ pregunta.vistas | default(0) }} vistas</span>
-        <span class="meta-item">💬 {{ respuestas | length }} respuesta{{ 's' if respuestas | length != 1 }}</span>
+        <span class="meta-item">Publicado el {{ pregunta.fecha_publicacion.strftime('%d de %B de %Y, %H:%M') }}</span>
+        <span class="meta-item">{{ pregunta.vistas | default(0) }} vistas</span>
+        <span class="meta-item">{{ respuestas | length }} respuesta{{ 's' if respuestas | length != 1 }}</span>
       </div>
 
       <div class="tags" style="margin-bottom:var(--space-4);">
         {% if pregunta.categoria %}
-          <span class="tag tag-cyan">📁 {{ pregunta.categoria }}</span>
+          <span class="tag tag-cyan">{{ pregunta.categoria }}</span>
         {% endif %}
         {% for tag in pregunta.tags %}
           <a href="{{ url_for('home') }}?tag={{ tag }}" class="tag">{{ tag }}</a>
@@ -40,7 +40,7 @@
       </div>
 
       <!-- Main question body + vote -->
-      <div style="display:grid;grid-template-columns:60px 1fr;gap:var(--space-4);">
+      <div style="display:grid;grid-template-columns:56px 1fr;gap:var(--space-4);">
         <!-- Vote controls -->
         <div
           class="vote-controls"
@@ -72,20 +72,20 @@
 
           <div class="answer-footer">
             <div class="author-info">
-              <div class="author-avatar" aria-hidden="true" style="width:32px;height:32px;font-size:14px;">
+              <div class="author-avatar" aria-hidden="true" style="width:32px;height:32px;font-size:13px;">
                 {{ pregunta.autor.nombre[0] | upper }}
               </div>
               <div>
                 <a href="{{ url_for('profile', user_id=pregunta.autor.id) }}" class="author-name">{{ pregunta.autor.nombre }}</a>
-                <div style="font-size:var(--text-xs);color:var(--text-muted);">⭐ {{ pregunta.autor.reputacion | default(0) }} reputación</div>
+                <div style="font-size:var(--text-xs);color:var(--text-muted);">{{ pregunta.autor.reputacion | default(0) }} reputación</div>
               </div>
             </div>
             {% if current_user and current_user.id == pregunta.autor.id %}
               <div class="answer-actions">
-                <a href="{{ url_for('question_edit', question_id=pregunta.id) }}" class="action-btn" id="btn-edit-q">✏️ Editar</a>
+                <a href="{{ url_for('question_edit', question_id=pregunta.id) }}" class="action-btn" id="btn-edit-q">Editar</a>
                 <button class="action-btn btn-danger" id="btn-delete-q"
                         onclick="if(confirm('¿Eliminar esta pregunta?')) window.location.href='{{ url_for('question_delete', question_id=pregunta.id) }}'">
-                  🗑️ Eliminar
+                  Eliminar
                 </button>
               </div>
             {% endif %}
@@ -107,9 +107,8 @@
 
       {% else %}
         <div class="empty-state" style="padding:var(--space-10) 0;">
-          <div class="empty-state-icon">💬</div>
           <h2 class="empty-state-title">Todavía no hay respuestas</h2>
-          <p class="empty-state-desc">¡Sé el primero en responder esta pregunta!</p>
+          <p class="empty-state-desc">Sé el primero en responder esta pregunta.</p>
         </div>
       {% endif %}
     </section>
@@ -124,13 +123,13 @@
 
         <!-- Write / Preview tabs -->
         <div class="tabs" role="tablist" aria-label="Editor de respuesta">
-          <button type="button" class="tab-btn active" id="write-tab" role="tab" aria-selected="true" aria-controls="write-area">✏️ Escribir</button>
-          <button type="button" class="tab-btn" id="preview-tab" role="tab" aria-selected="false" aria-controls="preview-area">👁️ Previsualizar</button>
+          <button type="button" class="tab-btn active" id="write-tab" role="tab" aria-selected="true" aria-controls="write-area">Escribir</button>
+          <button type="button" class="tab-btn" id="preview-tab" role="tab" aria-selected="false" aria-controls="preview-area">Previsualizar</button>
         </div>
 
         <div id="write-area" role="tabpanel" aria-labelledby="write-tab">
           <div class="form-group">
-            <label for="answer-body" class="form-label">Respuesta <span aria-hidden="true" style="color:var(--red);">*</span></label>
+            <label for="question-body" class="form-label">Respuesta <span aria-hidden="true" style="color:var(--red);">*</span></label>
             <textarea
               id="question-body"
               name="cuerpo"
@@ -157,7 +156,7 @@
         <div style="display:flex;gap:var(--space-3);justify-content:flex-end;margin-top:var(--space-5);">
           <a href="{{ url_for('home') }}" class="btn btn-secondary" id="btn-cancel-answer">Cancelar</a>
           <button type="submit" class="btn btn-primary" id="btn-submit-answer">
-            💬 Publicar respuesta
+            Publicar respuesta
           </button>
         </div>
       </form>
@@ -178,7 +177,7 @@
     <!-- Similar questions -->
     {% if preguntas_similares %}
     <div class="widget" id="widget-similar">
-      <h2 class="widget-title">🔗 Relacionadas</h2>
+      <h2 class="widget-title">Relacionadas</h2>
       {% for pq in preguntas_similares %}
       <div class="stat-row" style="display:block;padding:var(--space-2) 0;">
         <a href="{{ url_for('question_detail', question_id=pq.id) }}"
@@ -193,7 +192,7 @@
 
     <!-- Question stats -->
     <div class="widget" id="widget-q-stats">
-      <h2 class="widget-title">📊 Estadísticas</h2>
+      <h2 class="widget-title">Estadísticas</h2>
       <div class="stat-row">
         <span class="stat-row-label">Preguntado</span>
         <span class="stat-row-value">{{ pregunta.fecha_publicacion.strftime('%d %b %Y') }}</span>
@@ -215,7 +214,7 @@
     <!-- Tags -->
     {% if pregunta.tags %}
     <div class="widget" id="widget-q-tags">
-      <h2 class="widget-title">🏷️ Tags</h2>
+      <h2 class="widget-title">Tags</h2>
       <div class="tags">
         {% for tag in pregunta.tags %}
           <a href="{{ url_for('home') }}?tag={{ tag }}" class="tag">{{ tag }}</a>

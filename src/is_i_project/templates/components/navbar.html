@@ -1,40 +1,37 @@
 <!-- ───────────── NAVBAR ───────────── -->
 <nav class="navbar" role="navigation" aria-label="Navegación principal">
-  <!-- Mobile toggle -->
-  <button class="navbar-toggle" id="sidebar-toggle" aria-label="Abrir menú" aria-expanded="false">
+  <!-- Botón de menú lateral (muestra el sidebar al pasar el mouse) -->
+  <button class="navbar-toggle" id="sidebar-toggle" aria-label="Mostrar menú lateral" aria-expanded="false"
+    title="Menú de navegación">
     ☰
   </button>
 
   <!-- Logo -->
   <a href="{{ url_for('home') }}" class="navbar-logo" aria-label="Inicio">
-    <div class="navbar-logo-icon" aria-hidden="true">🔮</div>
+    <div class="navbar-logo-icon" aria-hidden="true">Q</div>
     <span class="navbar-logo-text">QAI</span>
   </a>
 
-  <!-- Search -->
-  <div class="navbar-search">
-    <span class="navbar-search-icon" aria-hidden="true">🔍</span>
-    <input
-      type="search"
-      id="navbar-search"
-      placeholder="Buscar preguntas… (Ctrl+K)"
-      aria-label="Buscar preguntas"
-      autocomplete="off"
-    />
+
   </div>
 
   <!-- Actions -->
   <div class="navbar-actions">
+    <button type="button" class="theme-toggle" id="theme-toggle" data-theme-toggle aria-label="Cambiar modo de color">
+      <span data-theme-label>Modo claro</span>
+    </button>
+
     {% if current_user %}
-      <a href="{{ url_for('question_new') }}" class="navbar-btn btn-primary" id="btn-ask-question">
-        ✏️ Preguntar
-      </a>
-      <a href="{{ url_for('profile', user_id=current_user.id) }}" class="user-avatar" title="{{ current_user.nombre }}" id="user-avatar-nav">
-        {{ current_user.nombre[0] | upper }}
-      </a>
+    <a href="{{ url_for('question_new') }}" class="navbar-btn btn-primary" id="btn-ask-question">
+      Preguntar
+    </a>
+    <a href="{{ url_for('profile', user_id=current_user.id) }}" class="user-avatar" title="{{ current_user.nombre }}"
+      id="user-avatar-nav">
+      {{ current_user.nombre[0] | upper }}
+    </a>
     {% else %}
-      <a href="{{ url_for('login') }}" class="navbar-btn btn-ghost" id="btn-login">Iniciar sesión</a>
-      <a href="{{ url_for('register') }}" class="navbar-btn btn-primary" id="btn-register">Registrarse</a>
+    <a href="{{ url_for('login') }}" class="navbar-btn btn-ghost" id="btn-login">Iniciar sesión</a>
+    <a href="{{ url_for('register') }}" class="navbar-btn btn-primary" id="btn-register">Registrarse</a>
     {% endif %}
   </div>
 </nav>

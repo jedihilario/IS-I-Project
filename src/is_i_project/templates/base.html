@@ -1,13 +1,23 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="{% block meta_description %}Plataforma colaborativa de preguntas y respuestas con asistencia de Inteligencia Artificial.{% endblock %}" />
-  <title>{% block title %}QAI — Plataforma Q&A con IA{% endblock %}</title>
+  <title>{% block title %}QAI — Plataforma Q&A{% endblock %}</title>
 
-  <!-- Favicon (emoji fallback) -->
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔮</text></svg>" />
+  <!-- Inicialización temprana del tema para evitar parpadeo -->
+  <script>
+    (function() {
+      var saved = localStorage.getItem('qai-theme');
+      if (saved === 'light' || saved === 'dark') {
+        document.documentElement.setAttribute('data-theme', saved);
+      }
+    })();
+  </script>
+
+  <!-- Favicon SVG limpio -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%232563eb'/><text x='50' y='68' font-family='sans-serif' font-weight='700' font-size='56' fill='white' text-anchor='middle'>Q</text></svg>" />
 
   <!-- Main CSS -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />

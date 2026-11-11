@@ -26,7 +26,7 @@
     >▼</button>
 
     {% if r.es_aceptada %}
-      <div title="Respuesta aceptada" aria-label="Respuesta aceptada" style="font-size:24px;color:var(--green);">✅</div>
+      <span class="badge badge-accepted" title="Respuesta aceptada" aria-label="Respuesta aceptada">✓</span>
     {% endif %}
   </div>
 
@@ -35,7 +35,7 @@
     <!-- Banner distintivo si fue generada por IA -->
     {% if r.autor.tipo == 'IA' %}
     <div class="badge badge-ai" style="margin-bottom:var(--space-4);display:inline-flex;">
-      🤖 Respuesta generada por IA · {{ r.autor.nombreModelo | default('Modelo IA') }}
+      Respuesta generada por IA · {{ r.autor.nombreModelo | default('Modelo IA') }}
     </div>
     {% endif %}
 
@@ -45,8 +45,8 @@
 
     <div class="answer-footer">
       <div class="author-info">
-        <div class="author-avatar {{ 'ai-avatar' if r.autor.tipo == 'IA' }}" aria-hidden="true" style="width:32px;height:32px;font-size:14px;">
-          {{ '🤖' if r.autor.tipo == 'IA' else r.autor.getNombreVisible()[0] | upper }}
+        <div class="author-avatar {{ 'ai-avatar' if r.autor.tipo == 'IA' }}" aria-hidden="true" style="width:32px;height:32px;font-size:12px;">
+          {{ 'IA' if r.autor.tipo == 'IA' else r.autor.getNombreVisible()[0] | upper }}
         </div>
         <div>
           {% if r.autor.tipo == 'IA' %}
@@ -55,7 +55,7 @@
           {% else %}
             <a href="{{ url_for('profile', user_id=r.autor.id) }}" class="author-name">{{ r.autor.getNombreVisible() }}</a>
             <div style="font-size:var(--text-xs);color:var(--text-muted);">
-              ⭐ {{ r.autor.reputacion | default(0) }} reputación ·
+              {{ r.autor.reputacion | default(0) }} reputación ·
               <time datetime="{{ r.fecha_publicacion.isoformat() }}">{{ r.fecha_publicacion.strftime('%d %b %Y') }}</time>
             </div>
           {% endif %}
@@ -69,13 +69,13 @@
             data-accept-answer="{{ r.id }}"
             id="accept-btn-{{ r.id }}"
           >
-            ✓ Aceptar
+            Aceptar
           </button>
         {% endif %}
         {% if current_user and (current_user.id == r.autor.id or current_user.rol == 'admin') %}
           <button class="action-btn btn-danger" id="del-answer-{{ r.id }}"
             onclick="if(confirm('¿Eliminar esta respuesta?')) window.location.href='{{ url_for('answer_delete', answer_id=r.id) }}'">
-            🗑️
+            Eliminar
           </button>
         {% endif %}
       </div>

@@ -26,7 +26,7 @@
   <div class="question-body">
     <div class="tags" aria-label="Tags">
       {% if q.categoria %}
-        <span class="tag tag-cyan">📁 {{ q.categoria }}</span>
+        <span class="tag tag-cyan">{{ q.categoria }}</span>
       {% endif %}
       {% for tag in q.tags[:4] %}
         <a href="{{ url_for('home') }}?tag={{ tag }}" class="tag">{{ tag }}</a>
@@ -43,10 +43,10 @@
 
     <div class="question-meta">
       {% if q.tiene_respuesta_ia %}
-        <span class="badge badge-ai" title="Tiene una respuesta generada por IA">🤖 IA</span>
+        <span class="badge badge-ai" title="Tiene una respuesta generada por IA">IA</span>
       {% endif %}
       {% if q.tiene_aceptada %}
-        <span class="badge badge-accepted">✅ Resuelta</span>
+        <span class="badge badge-accepted">Resuelta</span>
       {% endif %}
 
       <div class="author-info" aria-label="Publicado por {{ q.autor.nombre }}">

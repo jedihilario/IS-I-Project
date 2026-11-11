@@ -7,20 +7,19 @@
 
 <div class="page-header">
   <div>
-    <h1 class="page-title">🗂️ Categorías y Tags</h1>
+    <h1 class="page-title">Categorías y Tags</h1>
     <p class="page-subtitle">Explorá el contenido por tema</p>
   </div>
-  <a href="{{ url_for('question_new') }}" class="btn btn-primary" id="btn-ask-from-cat">✏️ Nueva pregunta</a>
+  <a href="{{ url_for('question_new') }}" class="btn btn-primary" id="btn-ask-from-cat">Nueva pregunta</a>
 </div>
 
 <!-- ── CATEGORÍAS ── -->
 <section aria-labelledby="categories-heading" id="categories-section">
-  <div class="section-divider" id="categories-heading">📁 Categorías</div>
+  <div class="section-divider" id="categories-heading">Categorías</div>
 
   <div class="category-grid" id="category-grid">
 
     {% if categorias %}
-      {% set icons = ['🖥️', '🌐', '🗄️', '⚙️', '🔒', '🤖', '📊', '🧪', '📱', '☁️', '🔧', '🎨'] %}
       {% for cat in categorias %}
       <a
         href="{{ url_for('home') }}?categoria={{ cat.nombre }}"
@@ -28,14 +27,12 @@
         id="cat-{{ loop.index }}"
         aria-label="{{ cat.nombre }}, {{ cat.count }} preguntas"
       >
-        <div class="category-icon" aria-hidden="true">{{ icons[loop.index0 % icons | length] }}</div>
         <div class="category-name">{{ cat.nombre }}</div>
         <div class="category-desc">{{ cat.descripcion | default('Preguntas relacionadas con ' + cat.nombre) }}</div>
         <div class="category-count">
-          <span>❓</span>
           <span>{{ cat.count }} pregunta{{ 's' if cat.count != 1 }}</span>
           {% if cat.respondidas is defined %}
-            <span style="margin-left:auto;color:var(--green);">✅ {{ cat.respondidas }} resueltas</span>
+            <span style="margin-left:auto;color:var(--green);">{{ cat.respondidas }} resueltas</span>
           {% endif %}
         </div>
       </a>
@@ -43,25 +40,23 @@
     {% else %}
       <!-- Default categories if none in DB -->
       {% set default_cats = [
-        ('Backend', '🖥️', 'Flask, Django, APIs REST, bases de datos y más.'),
-        ('Frontend', '🌐', 'HTML, CSS, JavaScript, frameworks y UI/UX.'),
-        ('Base de datos', '🗄️', 'SQL, NoSQL, ORM, migraciones y optimización.'),
-        ('Algoritmos', '⚙️', 'Estructuras de datos, complejidad y resolución de problemas.'),
-        ('DevOps', '☁️', 'Docker, CI/CD, despliegue y monitoreo.'),
-        ('IA / ML', '🤖', 'Machine learning, modelos, datasets y evaluación.'),
-        ('Seguridad', '🔒', 'Autenticación, autorización, criptografía y vulnerabilidades.'),
-        ('General', '🎯', 'Preguntas generales de programación y desarrollo.'),
+        ('Backend', 'Flask, Django, APIs REST, bases de datos y más.'),
+        ('Frontend', 'HTML, CSS, JavaScript, frameworks y UI/UX.'),
+        ('Base de datos', 'SQL, NoSQL, ORM, migraciones y optimización.'),
+        ('Algoritmos', 'Estructuras de datos, complejidad y resolución de problemas.'),
+        ('DevOps', 'Docker, CI/CD, despliegue y monitoreo.'),
+        ('IA / ML', 'Machine learning, modelos, datasets y evaluación.'),
+        ('Seguridad', 'Autenticación, autorización, criptografía y vulnerabilidades.'),
+        ('General', 'Preguntas generales de programación y desarrollo.'),
       ] %}
-      {% for nombre, icon, desc in default_cats %}
+      {% for nombre, desc in default_cats %}
       <a href="{{ url_for('home') }}?categoria={{ nombre | lower | replace(' ', '-') }}"
          class="category-card"
          id="cat-default-{{ loop.index }}"
          aria-label="{{ nombre }}">
-        <div class="category-icon" aria-hidden="true">{{ icon }}</div>
         <div class="category-name">{{ nombre }}</div>
         <div class="category-desc">{{ desc }}</div>
         <div class="category-count">
-          <span>❓</span>
           <span>0 preguntas</span>
         </div>
       </a>
@@ -73,7 +68,7 @@
 
 <!-- ── TAGS ── -->
 <section aria-labelledby="tags-heading" id="tags-section" style="margin-top:var(--space-8);">
-  <div class="section-divider" id="tags-heading">🏷️ Tags populares</div>
+  <div class="section-divider" id="tags-heading">Tags populares</div>
 
   <div style="margin-bottom:var(--space-5);">
     <input
@@ -93,7 +88,7 @@
         class="tag-cloud-item"
         id="tag-{{ tag.nombre }}"
         role="listitem"
-        style="font-size: {{ 0.75 + (tag.count / (tags | map(attribute='count') | max | default(1))) * 0.75 }}rem;"
+        style="font-size: {{ 0.75 + (tag.count / (tags | map(attribute='count') | max | default(1))) * 0.5 }}rem;"
         aria-label="{{ tag.nombre }}, {{ tag.count }} preguntas"
       >
         {{ tag.nombre }}
@@ -116,7 +111,7 @@
         class="tag-cloud-item"
         id="tag-{{ nombre }}"
         role="listitem"
-        style="font-size: {{ 0.75 + (count / max_count) * 0.75 }}rem;"
+        style="font-size: {{ 0.75 + (count / max_count) * 0.5 }}rem;"
       >
         {{ nombre }}
         <span class="tag-cloud-count">{{ count }}</span>
@@ -128,25 +123,22 @@
 
 <!-- ── STATS RÁPIDAS ── -->
 <section aria-labelledby="cat-stats-heading" style="margin-top:var(--space-8);" id="cat-stats-section">
-  <div class="section-divider" id="cat-stats-heading">📊 Resumen</div>
+  <div class="section-divider" id="cat-stats-heading">Resumen</div>
 
   <div class="stats-grid">
     <div class="stat-card">
-      <div class="stat-card-icon purple" aria-hidden="true">🗂️</div>
       <div>
         <div class="stat-card-value" data-count-up="{{ categorias | length if categorias else 8 }}">{{ categorias | length if categorias else 8 }}</div>
         <div class="stat-card-label">Categorías activas</div>
       </div>
     </div>
     <div class="stat-card">
-      <div class="stat-card-icon cyan" aria-hidden="true">🏷️</div>
       <div>
         <div class="stat-card-value" data-count-up="{{ tags | length if tags else 20 }}">{{ tags | length if tags else 20 }}</div>
         <div class="stat-card-label">Tags únicos</div>
       </div>
     </div>
     <div class="stat-card">
-      <div class="stat-card-icon green" aria-hidden="true">❓</div>
       <div>
         <div class="stat-card-value" data-count-up="{{ stats.total_preguntas | default(0) }}">{{ stats.total_preguntas | default(0) }}</div>
         <div class="stat-card-label">Preguntas categorizadas</div>
@@ -159,7 +151,6 @@
 
 {% block extra_scripts %}
 <script>
-  // Live search over tags
   const tagSearch = document.getElementById('tag-search');
   if (tagSearch) {
     tagSearch.addEventListener('input', () => {

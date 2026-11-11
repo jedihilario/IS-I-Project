@@ -4,6 +4,39 @@
 
 'use strict';
 
+// ─── Theme Manager (Dark / Light) ───────────────────────────
+function initTheme() {
+  const root = document.documentElement;
+  const saved = localStorage.getItem('qai-theme');
+  const initialTheme = saved === 'light' || saved === 'dark' ? saved : 'dark';
+  root.setAttribute('data-theme', initialTheme);
+
+  function updateToggleButtons(theme) {
+    document.querySelectorAll('[data-theme-toggle]').forEach(btn => {
+      const label = btn.querySelector('[data-theme-label]');
+      const nextModeText = theme === 'dark' ? 'Modo claro' : 'Modo oscuro';
+      if (label) {
+        label.textContent = nextModeText;
+      } else {
+        btn.textContent = nextModeText;
+      }
+      btn.setAttribute('aria-label', `Cambiar a ${nextModeText.toLowerCase()}`);
+    });
+  }
+
+  updateToggleButtons(initialTheme);
+
+  document.querySelectorAll('[data-theme-toggle]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const current = root.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      localStorage.setItem('qai-theme', next);
+      updateToggleButtons(next);
+    });
+  });
+}
+
 // ─── Toast Notifications ────────────────────────────────────
 const Toast = {
   container: null,
@@ -19,19 +52,18 @@ const Toast = {
   },
 
   show(message, type = 'info', duration = 3500) {
-    const icons = { success: '✅', error: '❌', info: '💡' };
     const toast = document.createElement('div');
     toast.className = `toast ${type}`;
-    toast.innerHTML = `<span>${icons[type] || icons.info}</span><span>${message}</span>`;
+    toast.innerHTML = `<span>${message}</span>`;
     this.container.appendChild(toast);
     setTimeout(() => {
-      toast.style.animation = 'slide-in 0.3s cubic-bezier(0.4,0,0.2,1) reverse';
-      setTimeout(() => toast.remove(), 300);
+      toast.style.animation = 'slide-in 0.25s ease reverse';
+      setTimeout(() => toast.remove(), 250);
     }, duration);
   }
 };
 
-// ─── Sidebar Toggle (mobile) ─────────────────────────────────
+// ─── Sidebar Auto-hide + Hover on Button ────────────────────
 function initSidebar() {
   const toggle = document.getElementById('sidebar-toggle');
   const sidebar = document.getElementById('sidebar');
@@ -39,20 +71,45 @@ function initSidebar() {
 
   if (!toggle || !sidebar) return;
 
+  let hideTimer = null;
+
   function openSidebar() {
+    clearTimeout(hideTimer);
     sidebar.classList.add('open');
-    overlay && overlay.classList.add('active');
-    document.body.style.overflow = 'hidden';
+    toggle.setAttribute('aria-expanded', 'true');
   }
 
   function closeSidebar() {
+    clearTimeout(hideTimer);
     sidebar.classList.remove('open');
+    toggle.setAttribute('aria-expanded', 'false');
     overlay && overlay.classList.remove('active');
     document.body.style.overflow = '';
   }
 
+  function scheduleClose() {
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => {
+      closeSidebar();
+    }, 220);
+  }
+
+  // Mostrar al pasar el mouse por encima del botón y mantener abierto en el menú
+  toggle.addEventListener('mouseenter', openSidebar);
+  toggle.addEventListener('mouseleave', scheduleClose);
+
+  sidebar.addEventListener('mouseenter', () => {
+    clearTimeout(hideTimer);
+  });
+  sidebar.addEventListener('mouseleave', scheduleClose);
+
+  // Soporte táctil / clic alternativo
   toggle.addEventListener('click', () => {
-    sidebar.classList.contains('open') ? closeSidebar() : openSidebar();
+    if (sidebar.classList.contains('open')) {
+      closeSidebar();
+    } else {
+      openSidebar();
+    }
   });
 
   overlay && overlay.addEventListener('click', closeSidebar);
@@ -66,14 +123,13 @@ function initVoting() {
       if (!container) return;
 
       const id   = container.dataset.votable;
-      const type = container.dataset.type || 'question'; // 'question' | 'answer'
-      const dir  = this.dataset.voteBtn; // 'up' | 'down'
+      const type = container.dataset.type || 'question';
+      const dir  = this.dataset.voteBtn;
 
       const scoreEl = container.querySelector('[data-vote-score]');
       const upBtn   = container.querySelector('[data-vote-btn="up"]');
       const downBtn = container.querySelector('[data-vote-btn="down"]');
 
-      // Optimistic UI update
       const wasUp   = upBtn.classList.contains('upvoted');
       const wasDown = downBtn.classList.contains('downvoted');
       let score = parseInt(scoreEl.textContent, 10);
@@ -99,10 +155,7 @@ function initVoting() {
       }
 
       scoreEl.textContent = score;
-      scoreEl.style.transform = 'scale(1.3)';
-      setTimeout(() => scoreEl.style.transform = '', 200);
 
-      // API call (best-effort)
       try {
         const res = await fetch(`/api/${type}s/${id}/vote`, {
           method: 'POST',
@@ -112,7 +165,7 @@ function initVoting() {
         if (!res.ok) throw new Error('Vote failed');
         Toast.show('Voto registrado', 'success', 2000);
       } catch {
-        // Silently ignore if API not yet wired
+        // Ignore if API not wired
       }
     });
   });
@@ -125,15 +178,14 @@ function initAcceptAnswer() {
       const answerId = this.dataset.acceptAnswer;
       try {
         await fetch(`/api/answers/${answerId}/accept`, { method: 'POST' });
-        // Mark as accepted visually
         document.querySelectorAll('.answer-card').forEach(c => c.classList.remove('accepted-answer'));
         const card = this.closest('.answer-card');
         card.classList.add('accepted-answer');
         document.querySelectorAll('[data-accept-answer]').forEach(b => {
-          b.textContent = '✓ Aceptar';
+          b.textContent = 'Aceptar';
           b.classList.remove('accept-btn');
         });
-        this.textContent = '✅ Aceptada';
+        this.textContent = 'Aceptada';
         this.classList.add('accept-btn');
         Toast.show('Respuesta marcada como aceptada', 'success');
       } catch {
@@ -181,7 +233,6 @@ function initFilters() {
           if (filter === 'all') {
             item.style.display = '';
           } else {
-            const tags = item.dataset.tags || '';
             const hasAi = item.dataset.hasAi === 'true';
             const answered = item.dataset.answered === 'true';
 
@@ -225,7 +276,6 @@ function initSearch() {
     navSearch.addEventListener('input', debounce(e => {
       const q = e.target.value.trim();
       if (q.length >= 3) {
-        // Could redirect: window.location.href = `/buscar?q=${encodeURIComponent(q)}`;
         filterQuestions(q);
       } else if (q.length === 0) {
         filterQuestions('');
@@ -390,7 +440,7 @@ function initCountUp() {
       if (entry.isIntersecting) {
         const el = entry.target;
         const target = parseInt(el.dataset.countUp, 10);
-        const duration = 1200;
+        const duration = 900;
         const start = performance.now();
         const easeOut = t => 1 - Math.pow(1 - t, 3);
 
@@ -432,17 +482,16 @@ function initRepBars() {
 // ─── Keyboard Shortcuts ────────────────────────────────────────
 function initKeyboardShortcuts() {
   document.addEventListener('keydown', e => {
-    // Ctrl/Cmd + K → focus search
     if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
       e.preventDefault();
       const search = document.getElementById('navbar-search') || document.getElementById('search-input');
       search && search.focus();
     }
-    // Escape → close modals / sidebar
     if (e.key === 'Escape') {
       const sidebar = document.getElementById('sidebar');
       if (sidebar && sidebar.classList.contains('open')) {
         sidebar.classList.remove('open');
+        document.getElementById('sidebar-toggle')?.setAttribute('aria-expanded', 'false');
         document.getElementById('sidebar-overlay')?.classList.remove('active');
         document.body.style.overflow = '';
       }
@@ -462,6 +511,7 @@ function initActiveNav() {
 
 // ─── Bootstrap ────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  initTheme();
   Toast.init();
   initSidebar();
   initVoting();

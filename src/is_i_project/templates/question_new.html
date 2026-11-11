@@ -8,7 +8,7 @@
 
   <div class="page-header">
     <div>
-      <h1 class="page-title">✏️ Nueva pregunta</h1>
+      <h1 class="page-title">Nueva pregunta</h1>
       <p class="page-subtitle">Describí tu problema con detalle para obtener mejores respuestas.</p>
     </div>
   </div>
@@ -52,8 +52,8 @@
 
         <!-- Tabs write/preview -->
         <div class="tabs" style="margin-bottom:var(--space-3);" role="tablist">
-          <button type="button" class="tab-btn active" id="write-tab" role="tab" aria-selected="true" aria-controls="write-area">✏️ Escribir</button>
-          <button type="button" class="tab-btn" id="preview-tab" role="tab" aria-selected="false" aria-controls="preview-area">👁️ Previsualizar</button>
+          <button type="button" class="tab-btn active" id="write-tab" role="tab" aria-selected="true" aria-controls="write-area">Escribir</button>
+          <button type="button" class="tab-btn" id="preview-tab" role="tab" aria-selected="false" aria-controls="preview-area">Previsualizar</button>
         </div>
 
         <div id="write-area" role="tabpanel">
@@ -137,7 +137,7 @@
     <div class="form-card" style="margin-bottom:var(--space-5);">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-4);">
         <div>
-          <div class="form-label" style="margin:0;">🤖 Solicitar asistencia de IA</div>
+          <div class="form-label" style="margin:0;">Solicitar asistencia de IA</div>
           <span class="form-hint" style="display:block;margin-top:4px;">
             Si no recibís respuestas en un tiempo, la IA generará una respuesta automáticamente.
           </span>
@@ -155,7 +155,6 @@
           <div class="ai-option">
             <input type="radio" name="ai_provider" id="ai-openai" value="openai" checked />
             <label for="ai-openai">
-              <span class="ai-icon">🧠</span>
               <span class="ai-name">OpenAI</span>
               <span class="ai-desc">GPT-4o</span>
             </label>
@@ -163,7 +162,6 @@
           <div class="ai-option">
             <input type="radio" name="ai_provider" id="ai-gemini" value="gemini" />
             <label for="ai-gemini">
-              <span class="ai-icon">✨</span>
               <span class="ai-name">Gemini</span>
               <span class="ai-desc">Google AI</span>
             </label>
@@ -171,7 +169,6 @@
           <div class="ai-option">
             <input type="radio" name="ai_provider" id="ai-local" value="local" />
             <label for="ai-local">
-              <span class="ai-icon">💻</span>
               <span class="ai-name">Local</span>
               <span class="ai-desc">Modelo propio</span>
             </label>
@@ -184,7 +181,7 @@
     <div style="display:flex;gap:var(--space-3);justify-content:flex-end;align-items:center;">
       <a href="{{ url_for('home') }}" class="btn btn-secondary" id="btn-cancel-new-q">Cancelar</a>
       <button type="submit" class="btn btn-primary btn-lg" id="btn-publish-q">
-        🚀 Publicar pregunta
+        Publicar pregunta
       </button>
     </div>
 
@@ -194,7 +191,6 @@
 
 {% block extra_scripts %}
 <script>
-  // Show/hide AI options on checkbox change
   const useAi = document.getElementById('use-ai');
   const aiOptions = document.getElementById('ai-options');
   if (useAi && aiOptions) {

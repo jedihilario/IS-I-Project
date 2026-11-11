@@ -18,16 +18,16 @@
       <h1 class="profile-name">{{ usuario.nombre }}</h1>
       {% if usuario.rol %}
         <span class="badge {{ 'badge-amber' if usuario.rol == 'admin' else 'badge-primary' }}">
-          {{ '👑' if usuario.rol == 'admin' else '👤' }} {{ usuario.rol | title }}
+          {{ usuario.rol | title }}
         </span>
       {% endif %}
       {% if usuario.tipo == 'IA' %}
-        <span class="badge badge-ai">🤖 AutorIA</span>
+        <span class="badge badge-ai">AutorIA</span>
       {% endif %}
     </div>
     <p class="profile-email">{{ usuario.email }}</p>
     <p style="font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--space-1);">
-      📅 Miembro desde {{ usuario.fecha_registro.strftime('%B %Y') if usuario.fecha_registro else 'desconocido' }}
+      Miembro desde {{ usuario.fecha_registro.strftime('%B %Y') if usuario.fecha_registro else 'desconocido' }}
     </p>
 
     <!-- Stats grid -->
@@ -42,7 +42,7 @@
       </div>
       <div class="profile-stat" id="stat-reputacion">
         <div class="profile-stat-value" data-count-up="{{ usuario.reputacion | default(0) }}">{{ usuario.reputacion | default(0) }}</div>
-        <div class="profile-stat-label">⭐ Reputación</div>
+        <div class="profile-stat-label">Reputación</div>
       </div>
     </div>
   </div>
@@ -51,7 +51,7 @@
   {% if current_user and current_user.id == usuario.id %}
   <div>
     <a href="{{ url_for('profile_edit') }}" class="btn btn-secondary" id="btn-edit-profile">
-      ✏️ Editar perfil
+      Editar perfil
     </a>
   </div>
   {% endif %}
@@ -61,7 +61,7 @@
 {% if usuario.reputacion is defined %}
 <div class="form-card" style="margin-bottom:var(--space-6);" id="rep-card">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-4);">
-    <h2 style="font-size:var(--text-base);font-weight:700;">⭐ Reputación</h2>
+    <h2 style="font-size:var(--text-base);font-weight:700;">Reputación</h2>
     <span class="badge badge-amber">{{ usuario.reputacion | default(0) }} puntos</span>
   </div>
 
@@ -93,13 +93,13 @@
 <div data-tabs id="profile-tabs">
   <div class="tabs" role="tablist" aria-label="Actividad del usuario">
     <button class="tab-btn active" data-tab-btn="preguntas" id="tab-preguntas" role="tab" aria-selected="true">
-      ❓ Preguntas ({{ preguntas | length }})
+      Preguntas ({{ preguntas | length }})
     </button>
     <button class="tab-btn" data-tab-btn="respuestas" id="tab-respuestas" role="tab" aria-selected="false">
-      💬 Respuestas ({{ respuestas | length }})
+      Respuestas ({{ respuestas | length }})
     </button>
     <button class="tab-btn" data-tab-btn="votos" id="tab-votos" role="tab" aria-selected="false">
-      👍 Votos
+      Votos
     </button>
   </div>
 
@@ -111,11 +111,10 @@
       {% endfor %}
     {% else %}
       <div class="empty-state" style="padding:var(--space-10) 0;">
-        <div class="empty-state-icon">❓</div>
         <p class="empty-state-title">Sin preguntas todavía</p>
         <p class="empty-state-desc">{{ usuario.nombre }} no ha hecho preguntas aún.</p>
         {% if current_user and current_user.id == usuario.id %}
-          <a href="{{ url_for('question_new') }}" class="btn btn-primary mt-4" id="btn-first-q-profile">✏️ Hacer mi primera pregunta</a>
+          <a href="{{ url_for('question_new') }}" class="btn btn-primary mt-4" id="btn-first-q-profile">Hacer mi primera pregunta</a>
         {% endif %}
       </div>
     {% endif %}
@@ -128,8 +127,8 @@
       <div class="answer-card {{ 'accepted-answer' if r.es_aceptada }} {{ 'ai-answer' if r.autor.tipo == 'IA' }}" id="profile-a-{{ r.id }}" style="grid-template-columns:1fr;">
         <div class="answer-body">
           <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-3);flex-wrap:wrap;">
-            {% if r.es_aceptada %}<span class="badge badge-accepted">✅ Aceptada</span>{% endif %}
-            {% if r.autor.tipo == 'IA' %}<span class="badge badge-ai">🤖 IA</span>{% endif %}
+            {% if r.es_aceptada %}<span class="badge badge-accepted">Aceptada</span>{% endif %}
+            {% if r.autor.tipo == 'IA' %}<span class="badge badge-ai">IA</span>{% endif %}
             <span class="badge badge-primary">{{ r.puntuacion }} votos</span>
           </div>
 
@@ -140,7 +139,7 @@
           <div style="margin-top:var(--space-3);font-size:var(--text-sm);color:var(--text-muted);">
             En respuesta a:
             <a href="{{ url_for('question_detail', question_id=r.pregunta.id) }}#answer-{{ r.id }}"
-               style="color:var(--cyan);" id="profile-a-link-{{ r.id }}">
+               id="profile-a-link-{{ r.id }}">
               {{ r.pregunta.titulo | truncate(80) }}
             </a>
           </div>
@@ -153,7 +152,6 @@
       {% endfor %}
     {% else %}
       <div class="empty-state" style="padding:var(--space-10) 0;">
-        <div class="empty-state-icon">💬</div>
         <p class="empty-state-title">Sin respuestas todavía</p>
         <p class="empty-state-desc">{{ usuario.nombre }} no ha respondido preguntas aún.</p>
       </div>
@@ -180,18 +178,17 @@
           {% for v in votos %}
           <tr id="vote-row-{{ v.id }}">
             <td>
-              <a href="{{ url_for('question_detail', question_id=v.publicacion.pregunta_id) }}"
-                 style="color:var(--cyan);">
+              <a href="{{ url_for('question_detail', question_id=v.publicacion.pregunta_id) }}">
                 {{ v.publicacion.titulo | default(v.publicacion.cuerpo | truncate(60)) }}
               </a>
             </td>
             <td>
               <span class="badge {{ 'badge-cyan' if v.publicacion.tipo == 'pregunta' else 'badge-primary' }}">
-                {{ '❓ Pregunta' if v.publicacion.tipo == 'pregunta' else '💬 Respuesta' }}
+                {{ 'Pregunta' if v.publicacion.tipo == 'pregunta' else 'Respuesta' }}
               </span>
             </td>
             <td>
-              <span style="font-size:1.2em;">{{ '👍' if v.es_positivo else '👎' }}</span>
+              <span style="font-weight:600;color:{{ 'var(--green)' if v.es_positivo else 'var(--red-light)' }};">{{ '+1' if v.es_positivo else '-1' }}</span>
             </td>
             <td>
               <time datetime="{{ v.fecha.isoformat() }}">{{ v.fecha.strftime('%d %b %Y') }}</time>
@@ -203,7 +200,6 @@
     </div>
     {% else %}
       <div class="empty-state" style="padding:var(--space-10) 0;">
-        <div class="empty-state-icon">👍</div>
         <p class="empty-state-title">Sin votos registrados</p>
         <p class="empty-state-desc">{{ usuario.nombre }} no ha emitido votos todavía.</p>
       </div>

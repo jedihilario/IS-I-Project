@@ -7,7 +7,7 @@
 
 <div class="page-header">
   <div>
-    <h1 class="page-title">⚙️ Panel de administración</h1>
+    <h1 class="page-title">Panel de administración</h1>
     <p class="page-subtitle">Gestión de la plataforma QAI</p>
   </div>
   <div style="display:flex;gap:var(--space-3);">
@@ -19,38 +19,34 @@
 <div class="stats-grid" id="admin-stats" role="region" aria-label="Estadísticas globales">
 
   <div class="stat-card" id="stat-users">
-    <div class="stat-card-icon purple" aria-hidden="true">👥</div>
     <div>
       <div class="stat-card-value" data-count-up="{{ stats.total_usuarios | default(0) }}">{{ stats.total_usuarios | default(0) }}</div>
       <div class="stat-card-label">Usuarios registrados</div>
-      <div class="stat-card-trend trend-up" aria-label="Tendencia positiva">▲ {{ stats.nuevos_usuarios_semana | default(0) }} esta semana</div>
+      <div class="stat-card-trend trend-up" aria-label="Tendencia positiva">+{{ stats.nuevos_usuarios_semana | default(0) }} esta semana</div>
     </div>
   </div>
 
   <div class="stat-card" id="stat-questions">
-    <div class="stat-card-icon cyan" aria-hidden="true">❓</div>
     <div>
       <div class="stat-card-value" data-count-up="{{ stats.total_preguntas | default(0) }}">{{ stats.total_preguntas | default(0) }}</div>
       <div class="stat-card-label">Preguntas totales</div>
-      <div class="stat-card-trend trend-up">▲ {{ stats.nuevas_preguntas_semana | default(0) }} esta semana</div>
+      <div class="stat-card-trend trend-up">+{{ stats.nuevas_preguntas_semana | default(0) }} esta semana</div>
     </div>
   </div>
 
   <div class="stat-card" id="stat-answers">
-    <div class="stat-card-icon green" aria-hidden="true">💬</div>
     <div>
       <div class="stat-card-value" data-count-up="{{ stats.total_respuestas | default(0) }}">{{ stats.total_respuestas | default(0) }}</div>
       <div class="stat-card-label">Respuestas totales</div>
-      <div class="stat-card-trend trend-up">▲ {{ stats.nuevas_respuestas_semana | default(0) }} esta semana</div>
+      <div class="stat-card-trend trend-up">+{{ stats.nuevas_respuestas_semana | default(0) }} esta semana</div>
     </div>
   </div>
 
   <div class="stat-card" id="stat-ai">
-    <div class="stat-card-icon amber" aria-hidden="true">🤖</div>
     <div>
       <div class="stat-card-value" data-count-up="{{ stats.respuestas_ia | default(0) }}">{{ stats.respuestas_ia | default(0) }}</div>
       <div class="stat-card-label">Respuestas por IA</div>
-      <div class="stat-card-trend" style="color:var(--cyan-light);">
+      <div class="stat-card-trend" style="color:var(--text-muted);">
         {{ stats.pct_ia | default(0) }}% del total
       </div>
     </div>
@@ -61,16 +57,16 @@
 <!-- ── TABS ── -->
 <div data-tabs id="admin-tabs">
   <div class="tabs" role="tablist" aria-label="Secciones de administración">
-    <button class="tab-btn active" data-tab-btn="users"    id="tab-admin-users"    role="tab" aria-selected="true">👥 Usuarios</button>
-    <button class="tab-btn"        data-tab-btn="questions" id="tab-admin-questions" role="tab" aria-selected="false">❓ Preguntas</button>
-    <button class="tab-btn"        data-tab-btn="ai-config" id="tab-admin-ai"        role="tab" aria-selected="false">🤖 Config IA</button>
+    <button class="tab-btn active" data-tab-btn="users"     id="tab-admin-users"     role="tab" aria-selected="true">Usuarios</button>
+    <button class="tab-btn"        data-tab-btn="questions" id="tab-admin-questions" role="tab" aria-selected="false">Preguntas</button>
+    <button class="tab-btn"        data-tab-btn="ai-config" id="tab-admin-ai"        role="tab" aria-selected="false">Config IA</button>
   </div>
 
   <!-- ─ USERS TAB ─ -->
   <div data-tab-content="users" class="tab-content active" role="tabpanel" aria-labelledby="tab-admin-users" id="panel-admin-users">
     <div class="table-wrapper">
       <div class="table-header">
-        <span class="table-title">👥 Gestión de usuarios</span>
+        <span class="table-title">Gestión de usuarios</span>
         <input type="search" placeholder="Buscar usuario…" id="user-search"
                style="width:220px;height:36px;font-size:var(--text-sm);" aria-label="Buscar usuario" />
       </div>
@@ -94,7 +90,7 @@
               <td style="color:var(--text-muted);">{{ u.id }}</td>
               <td>
                 <div style="display:flex;align-items:center;gap:var(--space-2);">
-                  <div class="author-avatar" aria-hidden="true" style="width:30px;height:30px;font-size:12px;flex-shrink:0;">
+                  <div class="author-avatar" aria-hidden="true" style="width:28px;height:28px;font-size:11px;flex-shrink:0;">
                     {{ u.nombre[0] | upper }}
                   </div>
                   <a href="{{ url_for('profile', user_id=u.id) }}" style="color:var(--text-primary);font-weight:600;" id="admin-u-link-{{ u.id }}">
@@ -105,23 +101,21 @@
               <td style="font-size:var(--text-xs);">{{ u.email }}</td>
               <td>
                 <select class="role-select" data-role-select="{{ u.id }}" aria-label="Rol de {{ u.nombre }}" id="role-{{ u.id }}">
-                  <option value="usuario"    {{ 'selected' if u.rol == 'usuario' }}>👤 Usuario</option>
-                  <option value="moderador"  {{ 'selected' if u.rol == 'moderador' }}>🛡️ Moderador</option>
-                  <option value="admin"      {{ 'selected' if u.rol == 'admin' }}>👑 Admin</option>
+                  <option value="usuario"   {{ 'selected' if u.rol == 'usuario' }}>Usuario</option>
+                  <option value="moderador" {{ 'selected' if u.rol == 'moderador' }}>Moderador</option>
+                  <option value="admin"     {{ 'selected' if u.rol == 'admin' }}>Admin</option>
                 </select>
               </td>
-              <td>
-                <span style="color:var(--amber);">⭐ {{ u.reputacion | default(0) }}</span>
-              </td>
+              <td>{{ u.reputacion | default(0) }}</td>
               <td>{{ u.preguntas_count | default(0) }}</td>
               <td>{{ u.respuestas_count | default(0) }}</td>
               <td>
                 <div style="display:flex;gap:var(--space-2);">
-                  <a href="{{ url_for('profile', user_id=u.id) }}" class="btn btn-sm btn-secondary" id="admin-view-{{ u.id }}">👁️</a>
+                  <a href="{{ url_for('profile', user_id=u.id) }}" class="btn btn-sm btn-secondary" id="admin-view-{{ u.id }}">Ver</a>
                   {% if u.id != current_user.id %}
                   <button class="btn btn-sm btn-danger" id="admin-del-{{ u.id }}"
                     onclick="if(confirm('¿Eliminar al usuario {{ u.nombre }}? Esta acción es irreversible.')) window.location.href='{{ url_for('admin_delete_user', user_id=u.id) }}'">
-                    🗑️
+                    Eliminar
                   </button>
                   {% endif %}
                 </div>
@@ -144,7 +138,7 @@
   <div data-tab-content="questions" class="tab-content" role="tabpanel" aria-labelledby="tab-admin-questions" id="panel-admin-questions">
     <div class="table-wrapper">
       <div class="table-header">
-        <span class="table-title">❓ Preguntas recientes</span>
+        <span class="table-title">Preguntas recientes</span>
         <span style="font-size:var(--text-xs);color:var(--text-muted);">Últimas {{ preguntas_recientes | length if preguntas_recientes else 0 }}</span>
       </div>
       <table id="questions-table" aria-label="Tabla de preguntas">
@@ -170,7 +164,7 @@
                 </a>
               </td>
               <td>
-                <a href="{{ url_for('profile', user_id=q.autor.id) }}" style="color:var(--cyan);">
+                <a href="{{ url_for('profile', user_id=q.autor.id) }}" style="color:var(--primary);">
                   {{ q.autor.nombre }}
                 </a>
               </td>
@@ -178,14 +172,14 @@
               <td>{{ q.respuestas_count }}</td>
               <td>
                 {% if q.tiene_aceptada %}
-                  <span class="badge badge-accepted">✅ Resuelta</span>
+                  <span class="badge badge-accepted">Resuelta</span>
                 {% elif q.respuestas_count > 0 %}
-                  <span class="badge badge-cyan">💬 Respondida</span>
+                  <span class="badge badge-cyan">Respondida</span>
                 {% else %}
-                  <span class="badge" style="background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.3);color:var(--red-light);">⏳ Pendiente</span>
+                  <span class="badge" style="background:rgba(220,38,38,0.1);border:1px solid rgba(220,38,38,0.3);color:var(--red-light);">Pendiente</span>
                 {% endif %}
                 {% if q.tiene_respuesta_ia %}
-                  <span class="badge badge-ai" style="margin-left:4px;">🤖</span>
+                  <span class="badge badge-ai" style="margin-left:4px;">IA</span>
                 {% endif %}
               </td>
               <td style="font-size:var(--text-xs);white-space:nowrap;">
@@ -193,10 +187,10 @@
               </td>
               <td>
                 <div style="display:flex;gap:var(--space-2);">
-                  <a href="{{ url_for('question_detail', question_id=q.id) }}" class="btn btn-sm btn-secondary" id="admin-qview-{{ q.id }}">👁️</a>
+                  <a href="{{ url_for('question_detail', question_id=q.id) }}" class="btn btn-sm btn-secondary" id="admin-qview-{{ q.id }}">Ver</a>
                   <button class="btn btn-sm btn-danger" id="admin-qdel-{{ q.id }}"
                     onclick="if(confirm('¿Eliminar esta pregunta?')) window.location.href='{{ url_for('question_delete', question_id=q.id) }}'">
-                    🗑️
+                    Eliminar
                   </button>
                 </div>
               </td>
@@ -217,8 +211,8 @@
   <!-- ─ AI CONFIG TAB ─ -->
   <div data-tab-content="ai-config" class="tab-content" role="tabpanel" aria-labelledby="tab-admin-ai" id="panel-admin-ai">
     <div class="form-card" style="max-width:640px;">
-      <h2 style="font-size:var(--text-xl);font-weight:800;margin-bottom:var(--space-6);display:flex;align-items:center;gap:var(--space-2);">
-        🤖 Configuración de AutorIA
+      <h2 style="font-size:var(--text-xl);font-weight:700;margin-bottom:var(--space-6);">
+        Configuración de AutorIA
       </h2>
 
       <form method="POST" action="{{ url_for('admin_config_ai') }}" id="ai-config-form">
@@ -232,7 +226,6 @@
               <input type="radio" name="ai_provider" id="admin-ai-openai" value="openai"
                      {{ 'checked' if ai_config.provider == 'openai' }} />
               <label for="admin-ai-openai">
-                <span class="ai-icon">🧠</span>
                 <span class="ai-name">OpenAI</span>
                 <span class="ai-desc">GPT-4o</span>
               </label>
@@ -241,7 +234,6 @@
               <input type="radio" name="ai_provider" id="admin-ai-gemini" value="gemini"
                      {{ 'checked' if ai_config.provider == 'gemini' }} />
               <label for="admin-ai-gemini">
-                <span class="ai-icon">✨</span>
                 <span class="ai-name">Gemini</span>
                 <span class="ai-desc">Google AI</span>
               </label>
@@ -250,7 +242,6 @@
               <input type="radio" name="ai_provider" id="admin-ai-local" value="local"
                      {{ 'checked' if ai_config.provider == 'local' }} />
               <label for="admin-ai-local">
-                <span class="ai-icon">💻</span>
                 <span class="ai-name">Local</span>
                 <span class="ai-desc">Modelo propio</span>
               </label>
@@ -299,10 +290,10 @@
 
         <div style="display:flex;gap:var(--space-3);">
           <button type="submit" class="btn btn-primary" id="btn-save-ai-config">
-            💾 Guardar configuración
+            Guardar configuración
           </button>
           <button type="reset" class="btn btn-secondary" id="btn-reset-ai-config">
-            ↩️ Resetear
+            Resetear
           </button>
         </div>
       </form>
@@ -315,7 +306,6 @@
 
 {% block extra_scripts %}
 <script>
-  // Live filter on users table
   const userSearch = document.getElementById('user-search');
   if (userSearch) {
     userSearch.addEventListener('input', () => {

@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+
+{% block title %}{{ pregunta.titulo }} — QAI{% endblock %}
+{% block meta_description %}{{ pregunta.cuerpo | truncate(160) }}{% endblock %}
+
+{% block content %}
+<div class="content-grid">
+
+  <!-- ─── PREGUNTA + RESPUESTAS ─── -->
+  <section class="content-area" aria-label="Detalle de pregunta">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="Miga de pan" style="font-size:var(--text-sm);color:var(--text-muted);margin-bottom:var(--space-4);">
+      <a href="{{ url_for('home') }}">Inicio</a>
+      <span aria-hidden="true"> › </span>
+      {% if pregunta.categoria %}
+        <a href="{{ url_for('home') }}?categoria={{ pregunta.categoria }}">{{ pregunta.categoria }}</a>
+        <span aria-hidden="true"> › </span>
+      {% endif %}
+      <span style="color:var(--text-secondary);">{{ pregunta.titulo | truncate(50) }}</span>
+    </nav>
+
+    <!-- ── PREGUNTA ── -->
+    <article class="question-detail-header" id="question-{{ pregunta.id }}">
+      <h1 class="question-detail-title">{{ pregunta.titulo }}</h1>
+
+      <div class="question-detail-meta">
+        <span class="meta-item">🕒 {{ pregunta.fecha_publicacion.strftime('%d de %B de %Y, %H:%M') }}</span>
+        <span class="meta-item">👁️ {{ pregunta.vistas | default(0) }} vistas</span>
+        <span class="meta-item">💬 {{ respuestas | length }} respuesta{{ 's' if respuestas | length != 1 }}</span>
+      </div>
+
+      <div class="tags" style="margin-bottom:var(--space-4);">
+        {% if pregunta.categoria %}
+          <span class="tag tag-cyan">📁 {{ pregunta.categoria }}</span>
+        {% endif %}
+        {% for tag in pregunta.tags %}
+          <a href="{{ url_for('home') }}?tag={{ tag }}" class="tag">{{ tag }}</a>
+        {% endfor %}
+      </div>
+
+      <!-- Main question body + vote -->
+      <div style="display:grid;grid-template-columns:60px 1fr;gap:var(--space-4);">
+        <!-- Vote controls -->
+        <div
+          class="vote-controls"
+          data-votable="{{ pregunta.id }}"
+          data-type="question"
+          aria-label="Votar pregunta"
+        >
+          <button
+            class="vote-btn {{ 'upvoted' if user_vote == 1 }}"
+            data-vote-btn="up"
+            aria-label="Voto positivo"
+            title="Útil"
+            id="vote-up-q-{{ pregunta.id }}"
+          >▲</button>
+          <span class="vote-score" data-vote-score aria-live="polite">{{ pregunta.puntuacion }}</span>
+          <button
+            class="vote-btn {{ 'downvoted' if user_vote == -1 }}"
+            data-vote-btn="down"
+            aria-label="Voto negativo"
+            title="No útil"
+            id="vote-down-q-{{ pregunta.id }}"
+          >▼</button>
+        </div>
+
+        <div>
+          <div class="question-detail-body">
+            {{ pregunta.cuerpo | safe }}
+          </div>
+
+          <div class="answer-footer">
+            <div class="author-info">
+              <div class="author-avatar" aria-hidden="true" style="width:32px;height:32px;font-size:14px;">
+                {{ pregunta.autor.nombre[0] | upper }}
+              </div>
+              <div>
+                <a href="{{ url_for('profile', user_id=pregunta.autor.id) }}" class="author-name">{{ pregunta.autor.nombre }}</a>
+                <div style="font-size:var(--text-xs);color:var(--text-muted);">⭐ {{ pregunta.autor.reputacion | default(0) }} reputación</div>
+              </div>
+            </div>
+            {% if current_user and current_user.id == pregunta.autor.id %}
+              <div class="answer-actions">
+                <a href="{{ url_for('question_edit', question_id=pregunta.id) }}" class="action-btn" id="btn-edit-q">✏️ Editar</a>
+                <button class="action-btn btn-danger" id="btn-delete-q"
+                        onclick="if(confirm('¿Eliminar esta pregunta?')) window.location.href='{{ url_for('question_delete', question_id=pregunta.id) }}'">
+                  🗑️ Eliminar
+                </button>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <!-- ── RESPUESTAS ── -->
+    <section aria-label="Respuestas" id="answers-section">
+      <div class="section-divider">
+        {{ respuestas | length }} Respuesta{{ 's' if respuestas | length != 1 }}
+      </div>
+
+      {% if respuestas %}
+        {% for r in respuestas %}
+        <article
+          class="answer-card {{ 'accepted-answer' if r.es_aceptada }} {{ 'ai-answer' if r.autor.tipo == 'IA' }}"
+          id="answer-{{ r.id }}"
+          aria-label="Respuesta de {{ r.autor.getNombreVisible() }}"
+        >
+          <!-- Vote controls -->
+          <div
+            class="vote-controls"
+            data-votable="{{ r.id }}"
+            data-type="answer"
+            aria-label="Votar respuesta"
+          >
+            <button
+              class="vote-btn {{ 'upvoted' if r.user_vote == 1 }}"
+              data-vote-btn="up"
+              aria-label="Voto positivo"
+              id="vote-up-a-{{ r.id }}"
+            >▲</button>
+            <span class="vote-score" data-vote-score aria-live="polite">{{ r.puntuacion }}</span>
+            <button
+              class="vote-btn {{ 'downvoted' if r.user_vote == -1 }}"
+              data-vote-btn="down"
+              aria-label="Voto negativo"
+              id="vote-down-a-{{ r.id }}"
+            >▼</button>
+
+            {% if r.es_aceptada %}
+              <div title="Respuesta aceptada" aria-label="Respuesta aceptada" style="font-size:24px;color:var(--green);">✅</div>
+            {% endif %}
+          </div>
+
+          <!-- Answer body -->
+          <div class="answer-body">
+            <!-- AI banner -->
+            {% if r.autor.tipo == 'IA' %}
+            <div class="badge badge-ai" style="margin-bottom:var(--space-4);display:inline-flex;">
+              🤖 Respuesta generada por IA · {{ r.autor.nombreModelo | default('Modelo IA') }}
+            </div>
+            {% endif %}
+
+            <div class="answer-content">
+              {{ r.cuerpo | safe }}
+            </div>
+
+            <div class="answer-footer">
+              <div class="author-info">
+                <div class="author-avatar {{ 'ai-avatar' if r.autor.tipo == 'IA' }}" aria-hidden="true" style="width:32px;height:32px;font-size:14px;">
+                  {{ '🤖' if r.autor.tipo == 'IA' else r.autor.getNombreVisible()[0] | upper }}
+                </div>
+                <div>
+                  {% if r.autor.tipo == 'IA' %}
+                    <span class="author-name">{{ r.autor.getNombreVisible() }}</span>
+                    <div style="font-size:var(--text-xs);color:var(--text-muted);">Asistente IA</div>
+                  {% else %}
+                    <a href="{{ url_for('profile', user_id=r.autor.id) }}" class="author-name">{{ r.autor.getNombreVisible() }}</a>
+                    <div style="font-size:var(--text-xs);color:var(--text-muted);">
+                      ⭐ {{ r.autor.reputacion | default(0) }} reputación ·
+                      <time datetime="{{ r.fecha_publicacion.isoformat() }}">{{ r.fecha_publicacion.strftime('%d %b %Y') }}</time>
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+
+              <div class="answer-actions">
+                {% if current_user and current_user.id == pregunta.autor.id and not r.es_aceptada %}
+                  <button
+                    class="action-btn accept-btn"
+                    data-accept-answer="{{ r.id }}"
+                    id="accept-btn-{{ r.id }}"
+                  >
+                    ✓ Aceptar
+                  </button>
+                {% endif %}
+                {% if current_user and (current_user.id == r.autor.id or current_user.rol == 'admin') %}
+                  <button class="action-btn btn-danger" id="del-answer-{{ r.id }}"
+                    onclick="if(confirm('¿Eliminar esta respuesta?')) window.location.href='{{ url_for('answer_delete', answer_id=r.id) }}'">
+                    🗑️
+                  </button>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        </article>
+        {% endfor %}
+
+      {% else %}
+        <div class="empty-state" style="padding:var(--space-10) 0;">
+          <div class="empty-state-icon">💬</div>
+          <h2 class="empty-state-title">Todavía no hay respuestas</h2>
+          <p class="empty-state-desc">¡Sé el primero en responder esta pregunta!</p>
+        </div>
+      {% endif %}
+    </section>
+
+    <!-- ── NUEVA RESPUESTA ── -->
+    {% if current_user %}
+    <section aria-label="Escribir respuesta" id="answer-form-section" style="margin-top:var(--space-8);">
+      <div class="section-divider">Tu respuesta</div>
+
+      <form method="POST" action="{{ url_for('answer_create', question_id=pregunta.id) }}" class="form-card" data-validate id="answer-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+        <!-- Write / Preview tabs -->
+        <div class="tabs" role="tablist" aria-label="Editor de respuesta">
+          <button type="button" class="tab-btn active" id="write-tab" role="tab" aria-selected="true" aria-controls="write-area">✏️ Escribir</button>
+          <button type="button" class="tab-btn" id="preview-tab" role="tab" aria-selected="false" aria-controls="preview-area">👁️ Previsualizar</button>
+        </div>
+
+        <div id="write-area" role="tabpanel" aria-labelledby="write-tab">
+          <div class="form-group">
+            <label for="answer-body" class="form-label">Respuesta <span aria-hidden="true" style="color:var(--red);">*</span></label>
+            <textarea
+              id="question-body"
+              name="cuerpo"
+              rows="10"
+              placeholder="Escribí tu respuesta aquí. Podés usar Markdown: **negrita**, `código`, etc."
+              required
+              aria-required="true"
+              data-maxlength="10000"
+              data-counter="body-counter"
+            ></textarea>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:var(--space-1);">
+              <span class="form-hint">Soporte básico de Markdown</span>
+              <span id="body-counter" style="font-size:var(--text-xs);color:var(--text-muted);">0 / 10000</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="preview-area" class="hidden" role="tabpanel" aria-labelledby="preview-tab">
+          <div id="body-preview" class="answer-content" style="min-height:200px;padding:var(--space-4);background:var(--bg-elevated);border-radius:var(--radius-md);border:1px solid var(--border-subtle);">
+            <span style="color:var(--text-muted);">La previsualización aparecerá aquí…</span>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:var(--space-3);justify-content:flex-end;margin-top:var(--space-5);">
+          <a href="{{ url_for('home') }}" class="btn btn-secondary" id="btn-cancel-answer">Cancelar</a>
+          <button type="submit" class="btn btn-primary" id="btn-submit-answer">
+            💬 Publicar respuesta
+          </button>
+        </div>
+      </form>
+    </section>
+    {% else %}
+    <div class="form-card" style="text-align:center;margin-top:var(--space-8);">
+      <p style="color:var(--text-secondary);margin-bottom:var(--space-4);">
+        Iniciá sesión para responder esta pregunta.
+      </p>
+      <a href="{{ url_for('login') }}" class="btn btn-primary" id="btn-login-to-answer">Iniciar sesión</a>
+    </div>
+    {% endif %}
+
+  </section>
+
+  <!-- ─── SIDEBAR DERECHO ─── -->
+  <aside class="content-sidebar" aria-label="Info adicional">
+    <!-- Similar questions -->
+    {% if preguntas_similares %}
+    <div class="widget" id="widget-similar">
+      <h2 class="widget-title">🔗 Relacionadas</h2>
+      {% for pq in preguntas_similares %}
+      <div class="stat-row" style="display:block;padding:var(--space-2) 0;">
+        <a href="{{ url_for('question_detail', question_id=pq.id) }}"
+           style="font-size:var(--text-sm);color:var(--text-secondary);text-decoration:none;line-height:1.4;display:block;"
+           id="similar-{{ pq.id }}"
+        >{{ pq.titulo | truncate(80) }}</a>
+        <span style="font-size:var(--text-xs);color:var(--text-muted);">{{ pq.votos }} votos · {{ pq.respuestas_count }} resp.</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Question stats -->
+    <div class="widget" id="widget-q-stats">
+      <h2 class="widget-title">📊 Estadísticas</h2>
+      <div class="stat-row">
+        <span class="stat-row-label">Preguntado</span>
+        <span class="stat-row-value">{{ pregunta.fecha_publicacion.strftime('%d %b %Y') }}</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-row-label">Vistas</span>
+        <span class="stat-row-value">{{ pregunta.vistas | default(0) }}</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-row-label">Votos</span>
+        <span class="stat-row-value">{{ pregunta.puntuacion }}</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-row-label">Respuestas</span>
+        <span class="stat-row-value">{{ respuestas | length }}</span>
+      </div>
+    </div>
+
+    <!-- Tags -->
+    {% if pregunta.tags %}
+    <div class="widget" id="widget-q-tags">
+      <h2 class="widget-title">🏷️ Tags</h2>
+      <div class="tags">
+        {% for tag in pregunta.tags %}
+          <a href="{{ url_for('home') }}?tag={{ tag }}" class="tag">{{ tag }}</a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </aside>
+
+</div>
+{% endblock %}

@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+
+{% block title %}{{ usuario.nombre }} — Perfil — QAI{% endblock %}
+{% block meta_description %}Perfil de {{ usuario.nombre }} en QAI. Reputación, preguntas, respuestas y actividad.{% endblock %}
+
+{% block content %}
+
+<!-- ── PROFILE HEADER ── -->
+<section class="profile-header" aria-label="Perfil de usuario" id="profile-header">
+  <!-- Avatar -->
+  <div class="profile-avatar-lg" aria-hidden="true">
+    {{ usuario.nombre[0] | upper }}
+  </div>
+
+  <!-- Info -->
+  <div>
+    <div style="display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;margin-bottom:var(--space-1);">
+      <h1 class="profile-name">{{ usuario.nombre }}</h1>
+      {% if usuario.rol %}
+        <span class="badge {{ 'badge-amber' if usuario.rol == 'admin' else 'badge-primary' }}">
+          {{ '👑' if usuario.rol == 'admin' else '👤' }} {{ usuario.rol | title }}
+        </span>
+      {% endif %}
+      {% if usuario.tipo == 'IA' %}
+        <span class="badge badge-ai">🤖 AutorIA</span>
+      {% endif %}
+    </div>
+    <p class="profile-email">{{ usuario.email }}</p>
+    <p style="font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--space-1);">
+      📅 Miembro desde {{ usuario.fecha_registro.strftime('%B %Y') if usuario.fecha_registro else 'desconocido' }}
+    </p>
+
+    <!-- Stats grid -->
+    <div class="profile-stats-grid" style="margin-top:var(--space-4);">
+      <div class="profile-stat" id="stat-preguntas">
+        <div class="profile-stat-value" data-count-up="{{ usuario.preguntas_count | default(0) }}">{{ usuario.preguntas_count | default(0) }}</div>
+        <div class="profile-stat-label">Preguntas</div>
+      </div>
+      <div class="profile-stat" id="stat-respuestas">
+        <div class="profile-stat-value" data-count-up="{{ usuario.respuestas_count | default(0) }}">{{ usuario.respuestas_count | default(0) }}</div>
+        <div class="profile-stat-label">Respuestas</div>
+      </div>
+      <div class="profile-stat" id="stat-reputacion">
+        <div class="profile-stat-value" data-count-up="{{ usuario.reputacion | default(0) }}">{{ usuario.reputacion | default(0) }}</div>
+        <div class="profile-stat-label">⭐ Reputación</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit button (own profile) -->
+  {% if current_user and current_user.id == usuario.id %}
+  <div>
+    <a href="{{ url_for('profile_edit') }}" class="btn btn-secondary" id="btn-edit-profile">
+      ✏️ Editar perfil
+    </a>
+  </div>
+  {% endif %}
+</section>
+
+<!-- ── REPUTACIÓN BAR ── -->
+{% if usuario.reputacion is defined %}
+<div class="form-card" style="margin-bottom:var(--space-6);" id="rep-card">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-4);">
+    <h2 style="font-size:var(--text-base);font-weight:700;">⭐ Reputación</h2>
+    <span class="badge badge-amber">{{ usuario.reputacion | default(0) }} puntos</span>
+  </div>
+
+  {% set niveles = [
+    ('Novato', 0, 100),
+    ('Aprendiz', 100, 500),
+    ('Colaborador', 500, 2000),
+    ('Experto', 2000, 10000),
+    ('Maestro', 10000, 100000),
+  ] %}
+
+  {% for nombre, min_rep, max_rep in niveles %}
+    {% set progress = [(((usuario.reputacion | default(0)) - min_rep) / (max_rep - min_rep)) * 100, 0] | max %}
+    {% set progress = [progress, 100] | min %}
+    <div class="rep-bar-container">
+      <div class="rep-bar-label">
+        <span>{{ nombre }}</span>
+        <span>{{ min_rep }} – {{ max_rep }}</span>
+      </div>
+      <div class="rep-bar">
+        <div class="rep-bar-fill" data-pct="{{ progress | int }}" style="width:0%"></div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- ── ACTIVITY TABS ── -->
+<div data-tabs id="profile-tabs">
+  <div class="tabs" role="tablist" aria-label="Actividad del usuario">
+    <button class="tab-btn active" data-tab-btn="preguntas" id="tab-preguntas" role="tab" aria-selected="true">
+      ❓ Preguntas ({{ preguntas | length }})
+    </button>
+    <button class="tab-btn" data-tab-btn="respuestas" id="tab-respuestas" role="tab" aria-selected="false">
+      💬 Respuestas ({{ respuestas | length }})
+    </button>
+    <button class="tab-btn" data-tab-btn="votos" id="tab-votos" role="tab" aria-selected="false">
+      👍 Votos
+    </button>
+  </div>
+
+  <!-- PREGUNTAS TAB -->
+  <div data-tab-content="preguntas" class="tab-content active" role="tabpanel" aria-labelledby="tab-preguntas" id="panel-preguntas">
+    {% if preguntas %}
+      {% for q in preguntas %}
+      <div class="question-card" id="profile-q-{{ q.id }}">
+        <div class="question-stats">
+          <div class="stat-box {{ 'accepted' if q.tiene_aceptada else ('has-answer' if q.respuestas_count > 0 else '') }}">
+            <span class="stat-number">{{ q.respuestas_count }}</span>
+            <span class="stat-label">resp.</span>
+          </div>
+          <div class="stat-box">
+            <span class="stat-number">{{ q.votos }}</span>
+            <span class="stat-label">votos</span>
+          </div>
+        </div>
+        <div class="question-body">
+          <div class="tags">
+            {% if q.categoria %}<span class="tag tag-cyan">{{ q.categoria }}</span>{% endif %}
+            {% for tag in q.tags[:3] %}<span class="tag">{{ tag }}</span>{% endfor %}
+          </div>
+          <h2 class="question-title">
+            <a href="{{ url_for('question_detail', question_id=q.id) }}">{{ q.titulo }}</a>
+          </h2>
+          <div class="question-meta">
+            {% if q.tiene_aceptada %}<span class="badge badge-accepted">✅ Resuelta</span>{% endif %}
+            {% if q.tiene_respuesta_ia %}<span class="badge badge-ai">🤖 IA</span>{% endif %}
+            <time style="font-size:var(--text-xs);color:var(--text-muted);" datetime="{{ q.fecha_publicacion.isoformat() }}">
+              {{ q.fecha_publicacion.strftime('%d %b %Y') }}
+            </time>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state" style="padding:var(--space-10) 0;">
+        <div class="empty-state-icon">❓</div>
+        <p class="empty-state-title">Sin preguntas todavía</p>
+        <p class="empty-state-desc">{{ usuario.nombre }} no ha hecho preguntas aún.</p>
+        {% if current_user and current_user.id == usuario.id %}
+          <a href="{{ url_for('question_new') }}" class="btn btn-primary mt-4" id="btn-first-q-profile">✏️ Hacer mi primera pregunta</a>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- RESPUESTAS TAB -->
+  <div data-tab-content="respuestas" class="tab-content" role="tabpanel" aria-labelledby="tab-respuestas" id="panel-respuestas">
+    {% if respuestas %}
+      {% for r in respuestas %}
+      <div class="answer-card {{ 'accepted-answer' if r.es_aceptada }} {{ 'ai-answer' if r.autor.tipo == 'IA' }}" id="profile-a-{{ r.id }}" style="grid-template-columns:1fr;">
+        <div class="answer-body">
+          <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-3);flex-wrap:wrap;">
+            {% if r.es_aceptada %}<span class="badge badge-accepted">✅ Aceptada</span>{% endif %}
+            {% if r.autor.tipo == 'IA' %}<span class="badge badge-ai">🤖 IA</span>{% endif %}
+            <span class="badge badge-primary">{{ r.puntuacion }} votos</span>
+          </div>
+
+          <div class="answer-content" style="-webkit-line-clamp:3;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;">
+            {{ r.cuerpo | striptags | truncate(240) }}
+          </div>
+
+          <div style="margin-top:var(--space-3);font-size:var(--text-sm);color:var(--text-muted);">
+            En respuesta a:
+            <a href="{{ url_for('question_detail', question_id=r.pregunta.id) }}#answer-{{ r.id }}"
+               style="color:var(--cyan);" id="profile-a-link-{{ r.id }}">
+              {{ r.pregunta.titulo | truncate(80) }}
+            </a>
+          </div>
+
+          <div style="font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--space-2);">
+            <time datetime="{{ r.fecha_publicacion.isoformat() }}">{{ r.fecha_publicacion.strftime('%d %b %Y') }}</time>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state" style="padding:var(--space-10) 0;">
+        <div class="empty-state-icon">💬</div>
+        <p class="empty-state-title">Sin respuestas todavía</p>
+        <p class="empty-state-desc">{{ usuario.nombre }} no ha respondido preguntas aún.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- VOTOS TAB -->
+  <div data-tab-content="votos" class="tab-content" role="tabpanel" aria-labelledby="tab-votos" id="panel-votos">
+    {% if votos %}
+    <div class="table-wrapper">
+      <div class="table-header">
+        <span class="table-title">Historial de votos emitidos</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Publicación</th>
+            <th>Tipo</th>
+            <th>Voto</th>
+            <th>Fecha</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for v in votos %}
+          <tr id="vote-row-{{ v.id }}">
+            <td>
+              <a href="{{ url_for('question_detail', question_id=v.publicacion.pregunta_id) }}"
+                 style="color:var(--cyan);">
+                {{ v.publicacion.titulo | default(v.publicacion.cuerpo | truncate(60)) }}
+              </a>
+            </td>
+            <td>
+              <span class="badge {{ 'badge-cyan' if v.publicacion.tipo == 'pregunta' else 'badge-primary' }}">
+                {{ '❓ Pregunta' if v.publicacion.tipo == 'pregunta' else '💬 Respuesta' }}
+              </span>
+            </td>
+            <td>
+              <span style="font-size:1.2em;">{{ '👍' if v.es_positivo else '👎' }}</span>
+            </td>
+            <td>
+              <time datetime="{{ v.fecha.isoformat() }}">{{ v.fecha.strftime('%d %b %Y') }}</time>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty-state" style="padding:var(--space-10) 0;">
+        <div class="empty-state-icon">👍</div>
+        <p class="empty-state-title">Sin votos registrados</p>
+        <p class="empty-state-desc">{{ usuario.nombre }} no ha emitido votos todavía.</p>
+      </div>
+    {% endif %}
+  </div>
+
+</div><!-- /data-tabs -->
+
+{% endblock %}

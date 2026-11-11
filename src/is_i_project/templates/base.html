@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="{% block meta_description %}Plataforma colaborativa de preguntas y respuestas con asistencia de Inteligencia Artificial.{% endblock %}" />
+  <title>{% block title %}QAI — Plataforma Q&A con IA{% endblock %}</title>
+
+  <!-- Favicon (emoji fallback) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔮</text></svg>" />
+
+  <!-- Main CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
+
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<!-- ───────────── NAVBAR ───────────── -->
+<nav class="navbar" role="navigation" aria-label="Navegación principal">
+  <!-- Mobile toggle -->
+  <button class="navbar-toggle" id="sidebar-toggle" aria-label="Abrir menú" aria-expanded="false">
+    ☰
+  </button>
+
+  <!-- Logo -->
+  <a href="{{ url_for('home') }}" class="navbar-logo" aria-label="Inicio">
+    <div class="navbar-logo-icon" aria-hidden="true">🔮</div>
+    <span class="navbar-logo-text">QAI</span>
+  </a>
+
+  <!-- Search -->
+  <div class="navbar-search">
+    <span class="navbar-search-icon" aria-hidden="true">🔍</span>
+    <input
+      type="search"
+      id="navbar-search"
+      placeholder="Buscar preguntas… (Ctrl+K)"
+      aria-label="Buscar preguntas"
+      autocomplete="off"
+    />
+  </div>
+
+  <!-- Actions -->
+  <div class="navbar-actions">
+    {% if current_user %}
+      <a href="{{ url_for('question_new') }}" class="navbar-btn btn-primary" id="btn-ask-question">
+        ✏️ Preguntar
+      </a>
+      <a href="{{ url_for('profile', user_id=current_user.id) }}" class="user-avatar" title="{{ current_user.nombre }}" id="user-avatar-nav">
+        {{ current_user.nombre[0] | upper }}
+      </a>
+    {% else %}
+      <a href="{{ url_for('login') }}" class="navbar-btn btn-ghost" id="btn-login">Iniciar sesión</a>
+      <a href="{{ url_for('register') }}" class="navbar-btn btn-primary" id="btn-register">Registrarse</a>
+    {% endif %}
+  </div>
+</nav>
+
+<!-- Mobile overlay -->
+<div class="sidebar-overlay" id="sidebar-overlay" aria-hidden="true"></div>
+
+<!-- ───────────── LAYOUT ───────────── -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar" role="complementary" aria-label="Navegación lateral">
+    <span class="sidebar-section-title">Principal</span>
+
+    <a href="{{ url_for('home') }}" class="sidebar-link" id="nav-home">
+      <span class="sidebar-link-icon" aria-hidden="true">🏠</span>
+      Inicio
+    </a>
+    <a href="{{ url_for('home') }}?filter=unanswered" class="sidebar-link" id="nav-unanswered">
+      <span class="sidebar-link-icon" aria-hidden="true">❓</span>
+      Sin respuesta
+      {% if unanswered_count is defined %}
+        <span class="sidebar-badge">{{ unanswered_count }}</span>
+      {% endif %}
+    </a>
+    <a href="{{ url_for('home') }}?filter=ai" class="sidebar-link" id="nav-ai">
+      <span class="sidebar-link-icon" aria-hidden="true">🤖</span>
+      Respondidas por IA
+    </a>
+
+    <span class="sidebar-section-title">Explorar</span>
+
+    <a href="{{ url_for('categories') }}" class="sidebar-link" id="nav-categories">
+      <span class="sidebar-link-icon" aria-hidden="true">🗂️</span>
+      Categorías
+    </a>
+    <a href="{{ url_for('categories') }}#tags" class="sidebar-link" id="nav-tags">
+      <span class="sidebar-link-icon" aria-hidden="true">🏷️</span>
+      Tags
+    </a>
+
+    {% if current_user %}
+    <span class="sidebar-section-title">Mi cuenta</span>
+
+    <a href="{{ url_for('profile', user_id=current_user.id) }}" class="sidebar-link" id="nav-profile">
+      <span class="sidebar-link-icon" aria-hidden="true">👤</span>
+      Mi perfil
+    </a>
+
+    {% if current_user.rol == 'admin' %}
+    <span class="sidebar-section-title">Administración</span>
+    <a href="{{ url_for('admin_dashboard') }}" class="sidebar-link" id="nav-admin">
+      <span class="sidebar-link-icon" aria-hidden="true">⚙️</span>
+      Panel admin
+    </a>
+    {% endif %}
+
+    <a href="{{ url_for('logout') }}" class="sidebar-link" id="nav-logout" style="margin-top: auto;">
+      <span class="sidebar-link-icon" aria-hidden="true">🚪</span>
+      Cerrar sesión
+    </a>
+    {% endif %}
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content" id="main-content" role="main">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="toast {{ category }}" style="position:relative;margin-bottom:1rem;animation:none;">
+            {{ '✅' if category == 'success' else '❌' if category == 'error' else '💡' }}
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+</div><!-- /layout -->
+
+<!-- Toast container -->
+<div class="toast-container" id="toast-container" role="status" aria-live="polite"></div>
+
+<!-- Main JS -->
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

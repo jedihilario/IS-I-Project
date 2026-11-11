@@ -9,7 +9,7 @@
   <!-- ─── FEED PRINCIPAL ─── -->
   <section class="content-area" aria-label="Feed de preguntas">
 
-    <!-- Page Header -->
+    <!-- Header del Feed -->
     <div class="page-header">
       <div>
         <h1 class="page-title">Preguntas</h1>
@@ -26,12 +26,12 @@
       </a>
     </div>
 
-    <!-- Search (mobile) -->
+    <!-- Barra de búsqueda (móvil) -->
     <div class="form-group mb-4" style="display:none;" id="mobile-search-container">
       <input type="search" id="search-input" placeholder="Buscar preguntas…" aria-label="Buscar preguntas" />
     </div>
 
-    <!-- Filter Bar -->
+    <!-- Barra de Filtros -->
     <div class="filter-bar" data-filter-group id="filter-group" role="tablist" aria-label="Filtrar preguntas">
       <button class="filter-btn active" data-filter="all"        role="tab" id="filter-all">🕒 Recientes</button>
       <button class="filter-btn"        data-filter="top"        role="tab" id="filter-top">🔥 Más votadas</button>
@@ -39,81 +39,18 @@
       <button class="filter-btn"        data-filter="ai"         role="tab" id="filter-ai">🤖 Con IA</button>
     </div>
 
-    <!-- Question List -->
+    <!-- Lista de Preguntas -->
     <div id="question-list" role="list" aria-label="Lista de preguntas">
       {% if questions %}
         {% for q in questions %}
-        <article
-          class="question-card"
-          data-question-item
-          data-title="{{ q.titulo | lower }}"
-          data-tags="{{ q.tags | join(',') | lower if q.tags else '' }}"
-          data-answered="{{ 'true' if q.respuestas_count > 0 else 'false' }}"
-          data-has-ai="{{ 'true' if q.tiene_respuesta_ia else 'false' }}"
-          role="listitem"
-          id="question-{{ q.id }}"
-        >
-          <!-- Stats column -->
-          <div class="question-stats" aria-label="Estadísticas">
-            <div class="stat-box" aria-label="{{ q.votos }} votos">
-              <span class="stat-number">{{ q.votos }}</span>
-              <span class="stat-label">votos</span>
-            </div>
-            <div class="stat-box {{ 'accepted' if q.tiene_aceptada else ('has-answer' if q.respuestas_count > 0 else '') }}"
-                 aria-label="{{ q.respuestas_count }} respuestas">
-              <span class="stat-number">{{ q.respuestas_count }}</span>
-              <span class="stat-label">resp.</span>
-            </div>
-          </div>
-
-          <!-- Body -->
-          <div class="question-body">
-            <div class="tags" aria-label="Tags">
-              {% if q.categoria %}
-                <span class="tag tag-cyan">📁 {{ q.categoria }}</span>
-              {% endif %}
-              {% for tag in q.tags[:4] %}
-                <a href="{{ url_for('home') }}?tag={{ tag }}" class="tag">{{ tag }}</a>
-              {% endfor %}
-            </div>
-
-            <h2 class="question-title">
-              <a href="{{ url_for('question_detail', question_id=q.id) }}" id="q-link-{{ q.id }}">
-                {{ q.titulo }}
-              </a>
-            </h2>
-
-            <p class="question-excerpt">{{ q.cuerpo | truncate(180) }}</p>
-
-            <div class="question-meta">
-              {% if q.tiene_respuesta_ia %}
-                <span class="badge badge-ai" title="Tiene una respuesta generada por IA">🤖 IA</span>
-              {% endif %}
-              {% if q.tiene_aceptada %}
-                <span class="badge badge-accepted">✅ Resuelta</span>
-              {% endif %}
-
-              <div class="author-info" aria-label="Publicado por {{ q.autor.nombre }}">
-                <div class="author-avatar" aria-hidden="true">
-                  {{ q.autor.nombre[0] | upper if q.autor.nombre else '?' }}
-                </div>
-                <a href="{{ url_for('profile', user_id=q.autor.id) }}" class="author-name">{{ q.autor.nombre }}</a>
-                <span>·</span>
-                <time datetime="{{ q.fecha_publicacion.isoformat() }}">
-                  {{ q.fecha_publicacion.strftime('%d %b %Y') }}
-                </time>
-              </div>
-            </div>
-          </div>
-        </article>
+          {% include 'components/question_card.html' %}
         {% endfor %}
-
       {% else %}
-        <!-- Empty state -->
+        <!-- Estado Vacío -->
         <div class="empty-state" id="empty-state">
           <div class="empty-state-icon">🔍</div>
           <h2 class="empty-state-title">No hay preguntas todavía</h2>
-          <p class="empty-state-desc">Sé el primero en hacer una pregunta. La comunidad (y la IA) están listos para ayudarte.</p>
+          <p class="empty-state-desc">Sé el primero en hacer una pregunta. La comunidad y la IA están listos para ayudarte.</p>
           <a href="{{ url_for('question_new') }}" class="btn btn-primary" id="btn-first-question">
             ✏️ Hacer la primera pregunta
           </a>
@@ -121,7 +58,7 @@
       {% endif %}
     </div>
 
-    <!-- Pagination -->
+    <!-- Paginación -->
     {% if pagination and pagination.pages > 1 %}
     <nav class="pagination" aria-label="Paginación">
       <button class="page-btn" id="page-prev" {{ 'disabled' if not pagination.has_prev }} aria-label="Página anterior">‹</button>
@@ -140,84 +77,8 @@
 
   </section>
 
-  <!-- ─── SIDEBAR DERECHO ─── -->
-  <aside class="content-sidebar" aria-label="Información adicional">
-
-    <!-- Stats globales -->
-    <div class="widget" id="widget-stats">
-      <h2 class="widget-title">📊 Comunidad</h2>
-      <div class="stat-row">
-        <span class="stat-row-label">Preguntas</span>
-        <span class="stat-row-value" data-count-up="{{ stats.total_preguntas | default(0) }}">{{ stats.total_preguntas | default(0) }}</span>
-      </div>
-      <div class="stat-row">
-        <span class="stat-row-label">Respuestas</span>
-        <span class="stat-row-value" data-count-up="{{ stats.total_respuestas | default(0) }}">{{ stats.total_respuestas | default(0) }}</span>
-      </div>
-      <div class="stat-row">
-        <span class="stat-row-label">Usuarios</span>
-        <span class="stat-row-value" data-count-up="{{ stats.total_usuarios | default(0) }}">{{ stats.total_usuarios | default(0) }}</span>
-      </div>
-      <div class="stat-row">
-        <span class="stat-row-label">Respuestas IA</span>
-        <span class="stat-row-value" style="color:var(--cyan-light)" data-count-up="{{ stats.respuestas_ia | default(0) }}">{{ stats.respuestas_ia | default(0) }}</span>
-      </div>
-    </div>
-
-    <!-- Categorías populares -->
-    {% if categorias_populares %}
-    <div class="widget" id="widget-categories">
-      <h2 class="widget-title">🗂️ Categorías</h2>
-      {% for cat in categorias_populares %}
-      <div class="stat-row">
-        <a href="{{ url_for('home') }}?categoria={{ cat.nombre }}" class="stat-row-label" style="text-decoration:none;color:var(--text-secondary);">
-          {{ cat.nombre }}
-        </a>
-        <span class="stat-row-value">{{ cat.count }}</span>
-      </div>
-      {% endfor %}
-      <a href="{{ url_for('categories') }}" class="btn btn-secondary btn-block mt-4" style="text-align:center;display:block;" id="btn-ver-categorias">
-        Ver todas →
-      </a>
-    </div>
-    {% endif %}
-
-    <!-- Top usuarios -->
-    {% if top_usuarios %}
-    <div class="widget" id="widget-top-users">
-      <h2 class="widget-title">🏆 Top usuarios</h2>
-      <ul class="user-list" aria-label="Usuarios con mayor reputación">
-        {% for u in top_usuarios %}
-        <li>
-          <a href="{{ url_for('profile', user_id=u.id) }}" class="user-list-item">
-            <span class="user-list-rank">{{ loop.index }}</span>
-            <div class="author-avatar" aria-hidden="true" style="width:32px;height:32px;font-size:14px;">
-              {{ u.nombre[0] | upper }}
-            </div>
-            <div class="user-list-info">
-              <div class="user-list-name">{{ u.nombre }}</div>
-              <div class="user-list-rep">⭐ {{ u.reputacion }}</div>
-            </div>
-          </a>
-        </li>
-        {% endfor %}
-      </ul>
-    </div>
-    {% endif %}
-
-    <!-- Tags populares -->
-    {% if tags_populares %}
-    <div class="widget" id="widget-tags">
-      <h2 class="widget-title">🏷️ Tags populares</h2>
-      <div class="tags">
-        {% for tag in tags_populares %}
-        <a href="{{ url_for('home') }}?tag={{ tag.nombre }}" class="tag">{{ tag.nombre }}</a>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-
-  </aside>
+  <!-- ─── SIDEBAR DERECHO (MÉTRICAS & COMUNIDAD) ─── -->
+  {% include 'components/sidebar_community.html' %}
 
 </div>
 {% endblock %}

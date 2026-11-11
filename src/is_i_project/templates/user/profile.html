@@ -107,34 +107,7 @@
   <div data-tab-content="preguntas" class="tab-content active" role="tabpanel" aria-labelledby="tab-preguntas" id="panel-preguntas">
     {% if preguntas %}
       {% for q in preguntas %}
-      <div class="question-card" id="profile-q-{{ q.id }}">
-        <div class="question-stats">
-          <div class="stat-box {{ 'accepted' if q.tiene_aceptada else ('has-answer' if q.respuestas_count > 0 else '') }}">
-            <span class="stat-number">{{ q.respuestas_count }}</span>
-            <span class="stat-label">resp.</span>
-          </div>
-          <div class="stat-box">
-            <span class="stat-number">{{ q.votos }}</span>
-            <span class="stat-label">votos</span>
-          </div>
-        </div>
-        <div class="question-body">
-          <div class="tags">
-            {% if q.categoria %}<span class="tag tag-cyan">{{ q.categoria }}</span>{% endif %}
-            {% for tag in q.tags[:3] %}<span class="tag">{{ tag }}</span>{% endfor %}
-          </div>
-          <h2 class="question-title">
-            <a href="{{ url_for('question_detail', question_id=q.id) }}">{{ q.titulo }}</a>
-          </h2>
-          <div class="question-meta">
-            {% if q.tiene_aceptada %}<span class="badge badge-accepted">✅ Resuelta</span>{% endif %}
-            {% if q.tiene_respuesta_ia %}<span class="badge badge-ai">🤖 IA</span>{% endif %}
-            <time style="font-size:var(--text-xs);color:var(--text-muted);" datetime="{{ q.fecha_publicacion.isoformat() }}">
-              {{ q.fecha_publicacion.strftime('%d %b %Y') }}
-            </time>
-          </div>
-        </div>
-      </div>
+        {% include 'components/question_card.html' %}
       {% endfor %}
     {% else %}
       <div class="empty-state" style="padding:var(--space-10) 0;">

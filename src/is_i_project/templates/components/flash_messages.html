@@ -1,0 +1,11 @@
+<!-- ───────────── FLASH MESSAGES ───────────── -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="toast {{ category }}" style="position:relative;margin-bottom:1rem;animation:none;" role="alert">
+        {{ '✅' if category == 'success' else '❌' if category == 'error' else '💡' }}
+        {{ message }}
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}

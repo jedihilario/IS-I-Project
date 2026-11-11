@@ -1,0 +1,84 @@
+<!-- ───────────── COMPONENTE: ANSWER CARD ───────────── -->
+<article
+  class="answer-card {{ 'accepted-answer' if r.es_aceptada }} {{ 'ai-answer' if r.autor.tipo == 'IA' }}"
+  id="answer-{{ r.id }}"
+  aria-label="Respuesta de {{ r.autor.getNombreVisible() }}"
+>
+  <!-- Controles de Voto -->
+  <div
+    class="vote-controls"
+    data-votable="{{ r.id }}"
+    data-type="answer"
+    aria-label="Votar respuesta"
+  >
+    <button
+      class="vote-btn {{ 'upvoted' if r.user_vote == 1 }}"
+      data-vote-btn="up"
+      aria-label="Voto positivo"
+      id="vote-up-a-{{ r.id }}"
+    >▲</button>
+    <span class="vote-score" data-vote-score aria-live="polite">{{ r.puntuacion }}</span>
+    <button
+      class="vote-btn {{ 'downvoted' if r.user_vote == -1 }}"
+      data-vote-btn="down"
+      aria-label="Voto negativo"
+      id="vote-down-a-{{ r.id }}"
+    >▼</button>
+
+    {% if r.es_aceptada %}
+      <div title="Respuesta aceptada" aria-label="Respuesta aceptada" style="font-size:24px;color:var(--green);">✅</div>
+    {% endif %}
+  </div>
+
+  <!-- Cuerpo de la Respuesta -->
+  <div class="answer-body">
+    <!-- Banner distintivo si fue generada por IA -->
+    {% if r.autor.tipo == 'IA' %}
+    <div class="badge badge-ai" style="margin-bottom:var(--space-4);display:inline-flex;">
+      🤖 Respuesta generada por IA · {{ r.autor.nombreModelo | default('Modelo IA') }}
+    </div>
+    {% endif %}
+
+    <div class="answer-content">
+      {{ r.cuerpo | safe }}
+    </div>
+
+    <div class="answer-footer">
+      <div class="author-info">
+        <div class="author-avatar {{ 'ai-avatar' if r.autor.tipo == 'IA' }}" aria-hidden="true" style="width:32px;height:32px;font-size:14px;">
+          {{ '🤖' if r.autor.tipo == 'IA' else r.autor.getNombreVisible()[0] | upper }}
+        </div>
+        <div>
+          {% if r.autor.tipo == 'IA' %}
+            <span class="author-name">{{ r.autor.getNombreVisible() }}</span>
+            <div style="font-size:var(--text-xs);color:var(--text-muted);">Asistente IA</div>
+          {% else %}
+            <a href="{{ url_for('profile', user_id=r.autor.id) }}" class="author-name">{{ r.autor.getNombreVisible() }}</a>
+            <div style="font-size:var(--text-xs);color:var(--text-muted);">
+              ⭐ {{ r.autor.reputacion | default(0) }} reputación ·
+              <time datetime="{{ r.fecha_publicacion.isoformat() }}">{{ r.fecha_publicacion.strftime('%d %b %Y') }}</time>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="answer-actions">
+        {% if current_user and current_user.id == pregunta.autor.id and not r.es_aceptada %}
+          <button
+            class="action-btn accept-btn"
+            data-accept-answer="{{ r.id }}"
+            id="accept-btn-{{ r.id }}"
+          >
+            ✓ Aceptar
+          </button>
+        {% endif %}
+        {% if current_user and (current_user.id == r.autor.id or current_user.rol == 'admin') %}
+          <button class="action-btn btn-danger" id="del-answer-{{ r.id }}"
+            onclick="if(confirm('¿Eliminar esta respuesta?')) window.location.href='{{ url_for('answer_delete', answer_id=r.id) }}'">
+            🗑️
+          </button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</article>

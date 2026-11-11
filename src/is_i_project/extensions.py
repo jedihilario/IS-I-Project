@@ -1,2 +1,3 @@
-def db ():
-    pass
+from flask_sqlalchemy import SQLAlchemy
+
+db = SQLAlchemy()

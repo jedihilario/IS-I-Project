@@ -1,0 +1,64 @@
+<!-- ───────────── COMPONENTE: QUESTION CARD ───────────── -->
+<article
+  class="question-card"
+  data-question-item
+  data-title="{{ q.titulo | lower }}"
+  data-tags="{{ q.tags | join(',') | lower if q.tags else '' }}"
+  data-answered="{{ 'true' if q.respuestas_count > 0 else 'false' }}"
+  data-has-ai="{{ 'true' if q.tiene_respuesta_ia else 'false' }}"
+  role="listitem"
+  id="question-{{ q.id }}"
+>
+  <!-- Estadísticas: Votos y Respuestas -->
+  <div class="question-stats" aria-label="Estadísticas">
+    <div class="stat-box" aria-label="{{ q.votos }} votos">
+      <span class="stat-number">{{ q.votos }}</span>
+      <span class="stat-label">votos</span>
+    </div>
+    <div class="stat-box {{ 'accepted' if q.tiene_aceptada else ('has-answer' if q.respuestas_count > 0 else '') }}"
+         aria-label="{{ q.respuestas_count }} respuestas">
+      <span class="stat-number">{{ q.respuestas_count }}</span>
+      <span class="stat-label">resp.</span>
+    </div>
+  </div>
+
+  <!-- Contenido de la pregunta -->
+  <div class="question-body">
+    <div class="tags" aria-label="Tags">
+      {% if q.categoria %}
+        <span class="tag tag-cyan">{{ q.categoria }}</span>
+      {% endif %}
+      {% for tag in q.tags[:4] %}
+        <a href="{{ url_for('home') }}?tag={{ tag }}" class="tag">{{ tag }}</a>
+      {% endfor %}
+    </div>
+
+    <h2 class="question-title">
+      <a href="{{ url_for('question_detail', question_id=q.id) }}" id="q-link-{{ q.id }}">
+        {{ q.titulo }}
+      </a>
+    </h2>
+
+    <p class="question-excerpt">{{ q.cuerpo | striptags | truncate(180) }}</p>
+
+    <div class="question-meta">
+      {% if q.tiene_respuesta_ia %}
+        <span class="badge badge-ai" title="Tiene una respuesta generada por IA">IA</span>
+      {% endif %}
+      {% if q.tiene_aceptada %}
+        <span class="badge badge-accepted">Resuelta</span>
+      {% endif %}
+
+      <div class="author-info" aria-label="Publicado por {{ q.autor.nombre }}">
+        <div class="author-avatar" aria-hidden="true">
+          {{ q.autor.nombre[0] | upper if q.autor.nombre else '?' }}
+        </div>
+        <a href="{{ url_for('profile', user_id=q.autor.id) }}" class="author-name">{{ q.autor.nombre }}</a>
+        <span>·</span>
+        <time datetime="{{ q.fecha_publicacion.isoformat() }}">
+          {{ q.fecha_publicacion.strftime('%d %b %Y') }}
+        </time>
+      </div>
+    </div>
+  </div>
+</article>

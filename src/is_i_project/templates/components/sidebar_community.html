@@ -1,0 +1,78 @@
+<!-- ───────────── COMPONENTE: SIDEBAR COMUNIDAD ───────────── -->
+<aside class="content-sidebar" aria-label="Información adicional">
+
+  <!-- Stats globales -->
+  <div class="widget" id="widget-stats">
+    <h2 class="widget-title">Comunidad</h2>
+    <div class="stat-row">
+      <span class="stat-row-label">Preguntas</span>
+      <span class="stat-row-value" data-count-up="{{ stats.total_preguntas | default(0) }}">{{ stats.total_preguntas | default(0) }}</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-row-label">Respuestas</span>
+      <span class="stat-row-value" data-count-up="{{ stats.total_respuestas | default(0) }}">{{ stats.total_respuestas | default(0) }}</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-row-label">Usuarios</span>
+      <span class="stat-row-value" data-count-up="{{ stats.total_usuarios | default(0) }}">{{ stats.total_usuarios | default(0) }}</span>
+    </div>
+    <div class="stat-row">
+      <span class="stat-row-label">Respuestas IA</span>
+      <span class="stat-row-value" data-count-up="{{ stats.respuestas_ia | default(0) }}">{{ stats.respuestas_ia | default(0) }}</span>
+    </div>
+  </div>
+
+  <!-- Categorías populares -->
+  {% if categorias_populares %}
+  <div class="widget" id="widget-categories">
+    <h2 class="widget-title">Categorías</h2>
+    {% for cat in categorias_populares %}
+    <div class="stat-row">
+      <a href="{{ url_for('home') }}?categoria={{ cat.nombre }}" class="stat-row-label" style="text-decoration:none;color:var(--text-secondary);">
+        {{ cat.nombre }}
+      </a>
+      <span class="stat-row-value">{{ cat.count }}</span>
+    </div>
+    {% endfor %}
+    <a href="{{ url_for('categories') }}" class="btn btn-secondary btn-block mt-4" style="text-align:center;display:block;" id="btn-ver-categorias">
+      Ver todas →
+    </a>
+  </div>
+  {% endif %}
+
+  <!-- Top usuarios -->
+  {% if top_usuarios %}
+  <div class="widget" id="widget-top-users">
+    <h2 class="widget-title">Top usuarios</h2>
+    <ul class="user-list" aria-label="Usuarios con mayor reputación">
+      {% for u in top_usuarios %}
+      <li>
+        <a href="{{ url_for('profile', user_id=u.id) }}" class="user-list-item">
+          <span class="user-list-rank">{{ loop.index }}</span>
+          <div class="author-avatar" aria-hidden="true" style="width:30px;height:30px;font-size:13px;">
+            {{ u.nombre[0] | upper }}
+          </div>
+          <div class="user-list-info">
+            <div class="user-list-name">{{ u.nombre }}</div>
+            <div class="user-list-rep">{{ u.reputacion }} pts</div>
+          </div>
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <!-- Tags populares -->
+  {% if tags_populares %}
+  <div class="widget" id="widget-tags">
+    <h2 class="widget-title">Tags populares</h2>
+    <div class="tags">
+      {% for tag in tags_populares %}
+      <a href="{{ url_for('home') }}?tag={{ tag.nombre }}" class="tag">{{ tag.nombre }}</a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</aside>

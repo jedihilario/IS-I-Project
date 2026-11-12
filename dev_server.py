@@ -9,7 +9,7 @@ Ejecutar:
 Luego abrir: http://localhost:5000
 """
 
-from flask import Flask, render_template, redirect, url_for, request
+from flask import Flask, render_template, redirect, url_for, request, session, flash
 from datetime import datetime, timedelta
 import random
 
@@ -35,6 +35,27 @@ def mock_user(id=1, nombre="Valentín Tello", rol="admin"):
     u.fecha_registro = datetime(2024, 3, 15)
     u.preguntas_count = random.randint(2, 25)
     u.respuestas_count = random.randint(5, 60)
+    u.getNombreVisible = lambda: u.nombre
+    return u
+
+
+def get_current_user():
+    user_data = session.get("user")
+    if not user_data:
+        return None
+    class U:
+        pass
+    u = U()
+    u.id = user_data.get("id", 1)
+    u.nombre = user_data.get("nombre", "Usuario")
+    u.email = user_data.get("email", "usuario@example.com")
+    u.rol = user_data.get("rol", "usuario")
+    u.tipo = "Usuario"
+    u.reputacion = user_data.get("reputacion", 100)
+    u.fecha_registro = datetime(2024, 3, 15)
+    u.preguntas_count = user_data.get("preguntas_count", 0)
+    u.respuestas_count = user_data.get("respuestas_count", 0)
+    u.getNombreVisible = lambda: u.nombre
     return u
 
 
@@ -170,18 +191,39 @@ TOP_USUARIOS = [
     mock_user(5, "Juan A.", "usuario"),
 ]
 
-# ─── Template globals ───────────────────────────────────────
+# ─── Template globals & Auth guard ──────────────────────────
 
 @app.context_processor
 def inject_globals():
     def csrf_token():
         return "mock-csrf-token"
     return dict(
-        current_user=CURRENT_USER,
+        current_user=get_current_user(),
         csrf_token=csrf_token,
-        get_flashed_messages=lambda **kw: [],
         unanswered_count=sum(1 for q in SAMPLE_QUESTIONS if q.respuestas_count == 0),
     )
+
+
+@app.before_request
+def require_login():
+    # Recursos estáticos siempre permitidos
+    if request.path.startswith("/static") or request.path == "/favicon.ico":
+        return None
+
+    public_endpoints = {"index", "login", "register", "static", "forgot_password"}
+    endpoint = request.endpoint
+
+    user = get_current_user()
+
+    # Si NO está logueado o registrado, no puede acceder a nada fuera de la autenticación
+    if not user and endpoint not in public_endpoints:
+        flash("Debés iniciar sesión o registrarte para acceder a la plataforma.", "info")
+        return redirect(url_for("index"))
+
+    # Si YA está logueado y va a login/registro, llevar directo a /home
+    if user and endpoint in {"index", "login", "register"}:
+        return redirect(url_for("home"))
+
 
 # ─── Routes ─────────────────────────────────────────────────
 
@@ -255,7 +297,7 @@ def question_new():
             tiene_respuesta_ia=solicitar_ia,
             dias_atras=0,
         )
-        nueva_q.autor = CURRENT_USER
+        nueva_q.autor = get_current_user() or mock_user()
         SAMPLE_QUESTIONS.insert(0, nueva_q)
         return redirect(url_for("question_detail", question_id=nueva_q.id))
 
@@ -266,9 +308,23 @@ def question_new():
 def login():
     if request.method == "POST":
         email = request.form.get("email", "").strip()
+        password = request.form.get("password", "").strip()
+        if not email or not password:
+            flash("Por favor completá todos los campos.", "error")
+            return redirect(url_for("index", tab="login"))
+
         nombre = email.split("@")[0].replace(".", " ").title() if "@" in email else "Usuario"
-        global CURRENT_USER
-        CURRENT_USER = mock_user(nombre=nombre, rol="usuario")
+        rol = "admin" if "admin" in email.lower() else "usuario"
+        session["user"] = {
+            "id": 1,
+            "nombre": nombre,
+            "email": email,
+            "rol": rol,
+            "reputacion": 150,
+            "preguntas_count": 2,
+            "respuestas_count": 5,
+        }
+        flash(f"¡Bienvenido de nuevo, {nombre}!", "success")
         return redirect(url_for("home"))
     return render_template("auth/auth.html", active_tab="login")
 
@@ -276,16 +332,33 @@ def login():
 @app.route("/registro", methods=["GET", "POST"], endpoint="register")
 def register():
     if request.method == "POST":
-        nombre = request.form.get("nombre", "").strip() or "Nuevo Usuario"
+        nombre = request.form.get("nombre", "").strip()
+        email = request.form.get("email", "").strip()
+        password = request.form.get("password", "").strip()
         rol = request.form.get("rol", "usuario")
-        global CURRENT_USER
-        CURRENT_USER = mock_user(nombre=nombre, rol=rol)
+
+        if not nombre or not email or not password:
+            flash("Por favor completá todos los campos obligatorios.", "error")
+            return redirect(url_for("index", tab="register"))
+
+        session["user"] = {
+            "id": random.randint(10, 999),
+            "nombre": nombre,
+            "email": email,
+            "rol": rol,
+            "reputacion": 0,
+            "preguntas_count": 0,
+            "respuestas_count": 0,
+        }
+        flash(f"Cuenta creada exitosamente. ¡Bienvenido, {nombre}!", "success")
         return redirect(url_for("home"))
     return render_template("auth/auth.html", active_tab="register")
 
 
 @app.route("/logout", endpoint="logout")
 def logout():
+    session.clear()
+    flash("Sesión cerrada correctamente.", "info")
     return redirect(url_for("index"))
 
 

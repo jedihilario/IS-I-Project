@@ -1,14 +1,13 @@
+import os
 from flask import Flask
-
 from is_i_project.config import config
 from is_i_project.extensions import db
 
-def create_app (config_name: str = None) -> Flask:
+
+def create_app() -> Flask:
     app = Flask(__name__)
 
-    if config_name is None:
-        config_name = 'development'
-
+    config_name = os.getenv('APP_ENV', 'development')
     app.config.from_object(config[config_name]())
     db.init_app(app)
 

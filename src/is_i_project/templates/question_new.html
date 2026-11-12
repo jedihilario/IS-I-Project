@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block title %}Nueva pregunta — QAI{% endblock %}
+{% block meta_description %}Hacé tu pregunta a la comunidad y recibí respuestas de personas y de la IA.{% endblock %}
+
+{% block content %}
+<div style="max-width:860px;margin:0 auto;">
+
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Nueva pregunta</h1>
+      <p class="page-subtitle">Describí tu problema con detalle para obtener mejores respuestas.</p>
+    </div>
+  </div>
+
+  <form method="POST" action="{{ url_for('question_new') }}" data-validate id="new-question-form" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+    <input type="hidden" name="tags" id="tags-hidden" />
+
+    <!-- ── TÍTULO ── -->
+    <div class="form-card" style="margin-bottom:var(--space-5);">
+      <div class="form-group" style="margin-bottom:0;">
+        <label for="q-title" class="form-label">
+          Título <span aria-hidden="true" style="color:var(--red);">*</span>
+        </label>
+        <input
+          type="text"
+          id="q-title"
+          name="titulo"
+          placeholder="Ej: ¿Cómo implementar el patrón Strategy en Python?"
+          required
+          aria-required="true"
+          maxlength="150"
+          data-maxlength="150"
+          data-counter="title-counter"
+          value="{{ request.form.titulo | default('') }}"
+        />
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <span class="form-hint">Sé específico. Imaginá que le estás preguntando a un experto.</span>
+          <span id="title-counter" style="font-size:var(--text-xs);color:var(--text-muted);">0 / 150</span>
+        </div>
+        <span class="form-error" id="q-title-error" role="alert"></span>
+      </div>
+    </div>
+
+    <!-- ── CUERPO ── -->
+    <div class="form-card" style="margin-bottom:var(--space-5);">
+      <div class="form-group" style="margin-bottom:0;">
+        <label class="form-label">
+          Detalle del problema <span aria-hidden="true" style="color:var(--red);">*</span>
+        </label>
+
+        <!-- Tabs write/preview -->
+        <div class="tabs" style="margin-bottom:var(--space-3);" role="tablist">
+          <button type="button" class="tab-btn active" id="write-tab" role="tab" aria-selected="true" aria-controls="write-area">Escribir</button>
+          <button type="button" class="tab-btn" id="preview-tab" role="tab" aria-selected="false" aria-controls="preview-area">Previsualizar</button>
+        </div>
+
+        <div id="write-area" role="tabpanel">
+          <textarea
+            id="question-body"
+            name="cuerpo"
+            rows="14"
+            placeholder="Describí el problema con detalle:
+- ¿Qué intentás hacer?
+- ¿Qué esperabas que pasara?
+- ¿Qué ocurrió en realidad?
+- Incluí código relevante si aplica"
+            required
+            aria-required="true"
+            data-maxlength="20000"
+            data-counter="body-counter"
+          >{{ request.form.cuerpo | default('') }}</textarea>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:var(--space-1);">
+            <span class="form-hint">Podés usar Markdown: **negrita**, `código`, ### títulos</span>
+            <span id="body-counter" style="font-size:var(--text-xs);color:var(--text-muted);">0 / 20000</span>
+          </div>
+        </div>
+
+        <div id="preview-area" class="hidden" role="tabpanel">
+          <div id="body-preview"
+               style="min-height:280px;padding:var(--space-5);background:var(--bg-elevated);border-radius:var(--radius-md);border:1px solid var(--border-subtle);line-height:1.8;color:var(--text-primary);">
+            <span style="color:var(--text-muted);">La previsualización aparecerá aquí…</span>
+          </div>
+        </div>
+
+        <span class="form-error" id="question-body-error" role="alert"></span>
+      </div>
+    </div>
+
+    <!-- ── CATEGORÍA Y TAGS ── -->
+    <div class="form-card" style="margin-bottom:var(--space-5);">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-5);">
+
+        <!-- Categoría -->
+        <div class="form-group" style="margin-bottom:0;">
+          <label for="q-categoria" class="form-label">Categoría</label>
+          <select id="q-categoria" name="categoria">
+            <option value="">— Sin categoría —</option>
+            {% if categorias %}
+              {% for cat in categorias %}
+              <option value="{{ cat.nombre }}" {{ 'selected' if request.form.categoria == cat.nombre }}>
+                {{ cat.nombre }}
+              </option>
+              {% endfor %}
+            {% else %}
+              <option value="backend">Backend</option>
+              <option value="frontend">Frontend</option>
+              <option value="base-de-datos">Base de datos</option>
+              <option value="algoritmos">Algoritmos</option>
+              <option value="devops">DevOps</option>
+              <option value="ia-ml">IA / ML</option>
+              <option value="seguridad">Seguridad</option>
+              <option value="general">General</option>
+            {% endif %}
+          </select>
+        </div>
+
+        <!-- Tags -->
+        <div class="form-group" style="margin-bottom:0;">
+          <label for="tag-input" class="form-label">Tags</label>
+          <input
+            type="text"
+            id="tag-input"
+            placeholder="Ej: python, flask — Enter para agregar"
+            autocomplete="off"
+          />
+          <span class="form-hint">Máximo 5 tags. Presioná Enter o coma para agregar.</span>
+        </div>
+      </div>
+
+      <!-- Tag display -->
+      <div id="tag-list" class="tags" style="margin-top:var(--space-3);min-height:28px;"></div>
+    </div>
+
+    <!-- ── ASISTENCIA IA ── -->
+    <div class="form-card" style="margin-bottom:var(--space-5);">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-4);">
+        <div>
+          <div class="form-label" style="margin:0;">Solicitar asistencia de IA</div>
+          <span class="form-hint" style="display:block;margin-top:4px;">
+            Si no recibís respuestas en un tiempo, la IA generará una respuesta automáticamente.
+          </span>
+        </div>
+        <label class="sr-only" for="use-ai">Activar asistencia de IA</label>
+        <input type="checkbox" id="use-ai" name="solicitar_ia" value="1"
+               style="width:20px;height:20px;cursor:pointer;accent-color:var(--primary);"
+               {{ 'checked' if request.form.solicitar_ia }}
+        />
+      </div>
+
+      <div id="ai-options" style="display:none;">
+        <div class="form-label" style="margin-bottom:var(--space-3);">Proveedor de IA preferido</div>
+        <div class="ai-selector" role="radiogroup" aria-label="Seleccioná el proveedor de IA">
+          <div class="ai-option">
+            <input type="radio" name="ai_provider" id="ai-openai" value="openai" checked />
+            <label for="ai-openai">
+              <span class="ai-name">OpenAI</span>
+              <span class="ai-desc">GPT-4o</span>
+            </label>
+          </div>
+          <div class="ai-option">
+            <input type="radio" name="ai_provider" id="ai-gemini" value="gemini" />
+            <label for="ai-gemini">
+              <span class="ai-name">Gemini</span>
+              <span class="ai-desc">Google AI</span>
+            </label>
+          </div>
+          <div class="ai-option">
+            <input type="radio" name="ai_provider" id="ai-local" value="local" />
+            <label for="ai-local">
+              <span class="ai-name">Local</span>
+              <span class="ai-desc">Modelo propio</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ACCIONES ── -->
+    <div style="display:flex;gap:var(--space-3);justify-content:flex-end;align-items:center;">
+      <a href="{{ url_for('home') }}" class="btn btn-secondary" id="btn-cancel-new-q">Cancelar</a>
+      <button type="submit" class="btn btn-primary btn-lg" id="btn-publish-q">
+        Publicar pregunta
+      </button>
+    </div>
+
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  const useAi = document.getElementById('use-ai');
+  const aiOptions = document.getElementById('ai-options');
+  if (useAi && aiOptions) {
+    function toggleAI() {
+      aiOptions.style.display = useAi.checked ? 'block' : 'none';
+    }
+    useAi.addEventListener('change', toggleAI);
+    toggleAI();
+  }
+</script>
+{% endblock %}

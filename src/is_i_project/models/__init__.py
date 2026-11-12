@@ -8,5 +8,6 @@ from is_i_project.models.tag import Tag
 from is_i_project.models.question import Question
 from is_i_project.models.response import Response
 from is_i_project.models.role import Role
+from is_i_project.models.question_tag import QuestionTag
 
-__all__ = ['User', 'Post', 'Author', 'AI_Author', 'Category', 'Vote', 'Tag', 'Question', 'Response', 'Role']
+__all__ = ['User', 'Post', 'Author', 'AI_Author', 'Category', 'Vote', 'Tag', 'Question', 'Response', 'Role', 'QuestionTag']

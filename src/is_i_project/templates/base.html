@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="{% block meta_description %}Plataforma colaborativa de preguntas y respuestas con asistencia de Inteligencia Artificial.{% endblock %}" />
+  <title>{% block title %}QAI — Plataforma Q&A{% endblock %}</title>
+
+  <!-- Inicialización temprana del tema para evitar parpadeo -->
+  <script>
+    (function() {
+      var saved = localStorage.getItem('qai-theme');
+      if (saved === 'light' || saved === 'dark') {
+        document.documentElement.setAttribute('data-theme', saved);
+      }
+    })();
+  </script>
+
+  <!-- Favicon SVG limpio -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%232563eb'/><text x='50' y='68' font-family='sans-serif' font-weight='700' font-size='56' fill='white' text-anchor='middle'>Q</text></svg>" />
+
+  <!-- Main CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
+
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+  <!-- Componente: Navbar superior -->
+  {% include 'components/navbar.html' %}
+
+  <!-- Mobile overlay -->
+  <div class="sidebar-overlay" id="sidebar-overlay" aria-hidden="true"></div>
+
+  <!-- Layout Principal -->
+  <div class="layout">
+
+    <!-- Componente: Menú Lateral Izquierdo -->
+    {% include 'components/sidebar_left.html' %}
+
+    <!-- Contenido Principal -->
+    <main class="main-content" id="main-content" role="main">
+      <!-- Componente: Mensajes Flash -->
+      {% include 'components/flash_messages.html' %}
+
+      {% block content %}{% endblock %}
+    </main>
+
+  </div><!-- /layout -->
+
+  <!-- Toast container dinámico (manejado por main.js) -->
+  <div class="toast-container" id="toast-container" role="status" aria-live="polite"></div>
+
+  <!-- Main JS -->
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

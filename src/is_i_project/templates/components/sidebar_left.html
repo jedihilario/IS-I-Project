@@ -1,0 +1,53 @@
+<!-- ───────────── SIDEBAR NAVEGACIÓN ───────────── -->
+<aside class="sidebar" id="sidebar" role="complementary" aria-label="Navegación lateral">
+  <span class="sidebar-section-title">Principal</span>
+
+  <a href="{{ url_for('home') }}" class="sidebar-link" id="nav-home">
+    <span class="sidebar-link-icon" aria-hidden="true">🏠</span>
+    Inicio
+  </a>
+  <a href="{{ url_for('home') }}?filter=unanswered" class="sidebar-link" id="nav-unanswered">
+    <span class="sidebar-link-icon" aria-hidden="true">❓</span>
+    Sin respuesta
+    {% if unanswered_count is defined and unanswered_count > 0 %}
+      <span class="sidebar-badge">{{ unanswered_count }}</span>
+    {% endif %}
+  </a>
+  <a href="{{ url_for('home') }}?filter=ai" class="sidebar-link" id="nav-ai">
+    <span class="sidebar-link-icon" aria-hidden="true">🤖</span>
+    Respondidas por IA
+  </a>
+
+  <span class="sidebar-section-title">Explorar</span>
+
+  <a href="{{ url_for('categories') }}" class="sidebar-link" id="nav-categories">
+    <span class="sidebar-link-icon" aria-hidden="true">🗂️</span>
+    Categorías
+  </a>
+  <a href="{{ url_for('categories') }}#tags" class="sidebar-link" id="nav-tags">
+    <span class="sidebar-link-icon" aria-hidden="true">🏷️</span>
+    Tags
+  </a>
+
+  {% if current_user %}
+  <span class="sidebar-section-title">Mi cuenta</span>
+
+  <a href="{{ url_for('profile', user_id=current_user.id) }}" class="sidebar-link" id="nav-profile">
+    <span class="sidebar-link-icon" aria-hidden="true">👤</span>
+    Mi perfil
+  </a>
+
+  {% if current_user.rol == 'admin' %}
+  <span class="sidebar-section-title">Administración</span>
+  <a href="{{ url_for('admin_dashboard') }}" class="sidebar-link" id="nav-admin">
+    <span class="sidebar-link-icon" aria-hidden="true">⚙️</span>
+    Panel admin
+  </a>
+  {% endif %}
+
+  <a href="{{ url_for('logout') }}" class="sidebar-link" id="nav-logout" style="margin-top: auto;">
+    <span class="sidebar-link-icon" aria-hidden="true">🚪</span>
+    Cerrar sesión
+  </a>
+  {% endif %}
+</aside>

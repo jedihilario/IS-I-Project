@@ -185,7 +185,13 @@ def inject_globals():
 
 # ─── Routes ─────────────────────────────────────────────────
 
-@app.route("/")
+@app.route("/", endpoint="index")
+def index():
+    tab = request.args.get("tab", "login")
+    return render_template("auth/auth.html", active_tab=tab)
+
+
+@app.route("/home", endpoint="home")
 def home():
     return render_template("home.html",
         questions=SAMPLE_QUESTIONS,
@@ -256,23 +262,31 @@ def question_new():
     return render_template("question_new.html", categorias=CATEGORIAS)
 
 
-@app.route("/login", methods=["GET", "POST"])
+@app.route("/login", methods=["GET", "POST"], endpoint="login")
 def login():
     if request.method == "POST":
+        email = request.form.get("email", "").strip()
+        nombre = email.split("@")[0].replace(".", " ").title() if "@" in email else "Usuario"
+        global CURRENT_USER
+        CURRENT_USER = mock_user(nombre=nombre, rol="usuario")
         return redirect(url_for("home"))
-    return render_template("auth/login.html")
+    return render_template("auth/auth.html", active_tab="login")
 
 
-@app.route("/registro", methods=["GET", "POST"])
+@app.route("/registro", methods=["GET", "POST"], endpoint="register")
 def register():
     if request.method == "POST":
+        nombre = request.form.get("nombre", "").strip() or "Nuevo Usuario"
+        rol = request.form.get("rol", "usuario")
+        global CURRENT_USER
+        CURRENT_USER = mock_user(nombre=nombre, rol=rol)
         return redirect(url_for("home"))
-    return render_template("auth/register.html")
+    return render_template("auth/auth.html", active_tab="register")
 
 
-@app.route("/logout")
+@app.route("/logout", endpoint="logout")
 def logout():
-    return redirect(url_for("home"))
+    return redirect(url_for("index"))
 
 
 @app.route("/usuario/<int:user_id>")
@@ -370,9 +384,10 @@ def forgot_password():
 # ─── Run ────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    print("\n🔮 QAI Dev Server")
+    print("\nQAI Dev Server")
     print("─" * 40)
-    print("  http://localhost:5000          → Home")
+    print("  http://localhost:5000          → Login / Registro (Página principal)")
+    print("  http://localhost:5000/home     → Home / Feed de preguntas")
     print("  http://localhost:5000/preguntas/1  → Detalle")
     print("  http://localhost:5000/preguntas/nueva → Nueva pregunta")
     print("  http://localhost:5000/login    → Login")

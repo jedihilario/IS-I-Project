@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="Acceso a QAI — Iniciar sesión o registrarse en la plataforma de preguntas y respuestas." />
+  <title>Acceso — QAI</title>
+  <script>
+    (function () {
+      var saved = localStorage.getItem('qai-theme');
+      if (saved === 'light' || saved === 'dark') {
+        document.documentElement.setAttribute('data-theme', saved);
+      }
+    })();
+  </script>
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='18' fill='%232563eb'/><text x='50' y='68' font-family='sans-serif' font-weight='700' font-size='56' fill='white' text-anchor='middle'>Q</text></svg>" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}" />
+</head>
+
+<body>
+
+  <div class="auth-page">
+    <!-- Botón Modo Oscuro / Claro en la esquina superior -->
+    <div style="position:fixed;top:var(--space-4);right:var(--space-4);z-index:50;">
+      <button type="button" class="theme-toggle" data-theme-toggle aria-label="Cambiar modo de color">
+        <span data-theme-label>Modo claro</span>
+      </button>
+    </div>
+
+    <main style="width:100%;max-width:460px;">
+      <div class="auth-card" role="main">
+
+        <!-- Logo -->
+        <div class="auth-logo">
+          <a href="{{ url_for('home') }}" id="auth-logo-link" title="Ir al inicio de la plataforma">
+            <div class="auth-logo-icon" aria-hidden="true">Q</div>
+          </a>
+          <h1 class="auth-title">QAI</h1>
+          <p class="auth-subtitle">Plataforma colaborativa de preguntas y respuestas</p>
+        </div>
+
+        <!-- Navegación por pestañas: Iniciar sesión / Registrarse -->
+        <div class="auth-nav-tabs" role="tablist" aria-label="Seleccionar autenticación">
+          <button type="button" class="auth-nav-btn {{ 'active' if active_tab != 'register' else '' }}"
+            id="tab-btn-login" data-auth-target="login" role="tab"
+            aria-selected="{{ 'true' if active_tab != 'register' else 'false' }}" aria-controls="panel-login">
+            Iniciar sesión
+          </button>
+          <button type="button" class="auth-nav-btn {{ 'active' if active_tab == 'register' else '' }}"
+            id="tab-btn-register" data-auth-target="register" role="tab"
+            aria-selected="{{ 'true' if active_tab == 'register' else 'true' }}" aria-controls="panel-register">
+            Registrarse
+          </button>
+        </div>
+
+        <!-- Mensajes Flash -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="toast {{ category }}" style="position:relative;margin-bottom:var(--space-4);animation:none;"
+          role="alert">
+          {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <!-- ═════════ PANEL: INICIAR SESIÓN ═════════ -->
+        <section id="panel-login" class="auth-panel {{ 'active' if active_tab != 'register' else '' }}" role="tabpanel"
+          aria-labelledby="tab-btn-login">
+          <form method="POST" action="{{ url_for('login') }}" data-validate id="login-form" novalidate>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+            <div class="form-group">
+              <label for="login-email" class="form-label">Email</label>
+              <input type="email" id="login-email" name="email" placeholder="tu@email.com" required aria-required="true"
+                autocomplete="email" value="{{ request.form.email | default('') }}" />
+              <span class="form-error" id="login-email-error" role="alert"></span>
+            </div>
+
+            <div class="form-group">
+              <label for="login-password" class="form-label" style="display:flex;justify-content:space-between;">
+                <span>Contraseña</span>
+                <a href="{{ url_for('forgot_password') }}" style="font-weight:400;font-size:var(--text-xs);"
+                  id="link-forgot">¿Olvidaste tu contraseña?</a>
+              </label>
+              <div style="position:relative;">
+                <input type="password" id="login-password" name="password" placeholder="••••••••" required
+                  aria-required="true" autocomplete="current-password" />
+                <button type="button" id="toggle-login-password" class="password-toggle-btn"
+                  style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:var(--text-xs);font-weight:600;"
+                  aria-label="Mostrar/ocultar contraseña">Mostrar</button>
+              </div>
+              <span class="form-error" id="login-password-error" role="alert"></span>
+            </div>
+
+            <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-5);">
+              <input type="checkbox" id="remember-me" name="remember_me" value="1"
+                style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;" />
+              <label for="remember-me" style="font-size:var(--text-sm);color:var(--text-secondary);cursor:pointer;">
+                Recordarme en este dispositivo
+              </label>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block btn-lg" id="btn-login-submit">
+              Iniciar sesión
+            </button>
+          </form>
+
+          <div class="auth-divider">o</div>
+
+          <div class="auth-footer">
+            ¿No tenés cuenta?
+            <button type="button" class="switch-to-register"
+              style="background:none;border:none;color:var(--primary);cursor:pointer;font-weight:600;font-size:inherit;padding:0;">
+              Registrate acá
+            </button>
+          </div>
+        </section>
+
+        <!-- ═════════ PANEL: REGISTRARSE ═════════ -->
+        <section id="panel-register" class="auth-panel {{ 'active' if active_tab == 'register' else '' }}"
+          role="tabpanel" aria-labelledby="tab-btn-register">
+          <form method="POST" action="{{ url_for('register') }}" data-validate id="register-form" novalidate>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+            <!-- Nombre -->
+            <div class="form-group">
+              <label for="reg-nombre" class="form-label">
+                Nombre de usuario <span aria-hidden="true" style="color:var(--red);">*</span>
+              </label>
+              <input type="text" id="reg-nombre" name="nombre" placeholder="juanito_dev" required aria-required="true"
+                autocomplete="username" minlength="3" maxlength="40" value="{{ request.form.nombre | default('') }}" />
+              <span class="form-hint">Entre 3 y 40 caracteres. Solo letras, números y guiones.</span>
+              <span class="form-error" id="reg-nombre-error" role="alert"></span>
+            </div>
+
+            <!-- Email -->
+            <div class="form-group">
+              <label for="reg-email" class="form-label">
+                Email <span aria-hidden="true" style="color:var(--red);">*</span>
+              </label>
+              <input type="email" id="reg-email" name="email" placeholder="tu@email.com" required aria-required="true"
+                autocomplete="email" value="{{ request.form.email | default('') }}" />
+              <span class="form-error" id="reg-email-error" role="alert"></span>
+            </div>
+
+            <!-- Rol (Admin / Usuario general según los requerimientos) -->
+            <div class="form-group">
+              <label for="reg-rol" class="form-label">Tipo de cuenta</label>
+              <select id="reg-rol" name="rol">
+                <option value="usuario" selected>Usuario general</option>
+                <option value="admin">Administrador</option>
+              </select>
+              <span class="form-hint">Define tus permisos en la comunidad.</span>
+            </div>
+
+            <!-- Contraseña -->
+            <div class="form-group">
+              <label for="reg-password" class="form-label">
+                Contraseña <span aria-hidden="true" style="color:var(--red);">*</span>
+              </label>
+              <div style="position:relative;">
+                <input type="password" id="reg-password" name="password" placeholder="Mínimo 8 caracteres" required
+                  aria-required="true" autocomplete="new-password" minlength="8" />
+                <button type="button" id="toggle-register-password" class="password-toggle-btn"
+                  style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:var(--text-xs);font-weight:600;"
+                  aria-label="Mostrar/ocultar contraseña">Mostrar</button>
+              </div>
+              <!-- Medidor de seguridad de contraseña -->
+              <div id="pwd-strength" style="margin-top:var(--space-2);display:none;">
+                <div class="rep-bar">
+                  <div class="rep-bar-fill" id="pwd-strength-bar" style="width:0%;transition:width 0.3s;"></div>
+                </div>
+                <span id="pwd-strength-label" style="font-size:var(--text-xs);color:var(--text-muted);"></span>
+              </div>
+              <span class="form-error" id="reg-password-error" role="alert"></span>
+            </div>
+
+            <!-- Confirmar contraseña -->
+            <div class="form-group">
+              <label for="reg-password-confirm" class="form-label">
+                Confirmar contraseña <span aria-hidden="true" style="color:var(--red);">*</span>
+              </label>
+              <div style="position:relative;">
+                <input type="password" id="reg-password-confirm" name="password_confirm"
+                  placeholder="Repetí la contraseña" required aria-required="true" autocomplete="new-password" />
+                <span id="pwd-match-icon"
+                  style="position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:var(--text-xs);font-weight:600;"></span>
+              </div>
+              <span class="form-error" id="reg-password-confirm-error" role="alert"></span>
+            </div>
+
+            <!-- Términos -->
+            <div style="display:flex;gap:var(--space-2);align-items:flex-start;margin-bottom:var(--space-5);">
+              <input type="checkbox" id="terms" name="terms" required
+                style="width:16px;height:16px;accent-color:var(--primary);cursor:pointer;margin-top:3px;flex-shrink:0;" />
+              <label for="terms"
+                style="font-size:var(--text-sm);color:var(--text-secondary);cursor:pointer;line-height:1.5;">
+                Acepto los <a href="#">términos de uso</a> y la
+                <a href="#">política de privacidad</a>.
+              </label>
+            </div>
+            <span class="form-error" id="terms-error" role="alert"></span>
+
+            <button type="submit" class="btn btn-primary btn-block btn-lg" id="btn-register-submit">
+              Crear cuenta
+            </button>
+          </form>
+
+          <div class="auth-divider">o</div>
+
+          <div class="auth-footer">
+            ¿Ya tenés cuenta?
+            <button type="button" class="switch-to-login"
+              style="background:none;border:none;color:var(--primary);cursor:pointer;font-weight:600;font-size:inherit;padding:0;">
+              Iniciá sesión acá
+            </button>
+          </div>
+        </section>
+
+        <!-- Enlace para ingresar como invitado / explorar -->
+        <div
+          style="text-align:center;margin-top:var(--space-6);padding-top:var(--space-4);border-top:1px solid var(--border-subtle);">
+          <a href="{{ url_for('home') }}"
+            style="font-size:var(--text-xs);color:var(--text-muted);text-decoration:none;">
+            Entrar si sos programador de ISI →
+          </a>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  <script>
+    // Manejo de cambio de pestaña (Login / Register)
+    const tabLoginBtn = document.getElementById('tab-btn-login');
+    const tabRegisterBtn = document.getElementById('tab-btn-register');
+    const panelLogin = document.getElementById('panel-login');
+    const panelRegister = document.getElementById('panel-register');
+
+    function showTab(target) {
+      if (target === 'register') {
+        tabRegisterBtn.classList.add('active');
+        tabRegisterBtn.setAttribute('aria-selected', 'true');
+        tabLoginBtn.classList.remove('active');
+        tabLoginBtn.setAttribute('aria-selected', 'false');
+
+        panelRegister.classList.add('active');
+        panelLogin.classList.remove('active');
+        if (history.replaceState) {
+          history.replaceState(null, '', '#register');
+        }
+      } else {
+        tabLoginBtn.classList.add('active');
+        tabLoginBtn.setAttribute('aria-selected', 'true');
+        tabRegisterBtn.classList.remove('active');
+        tabRegisterBtn.setAttribute('aria-selected', 'false');
+
+        panelLogin.classList.add('active');
+        panelRegister.classList.remove('active');
+        if (history.replaceState) {
+          history.replaceState(null, '', '#login');
+        }
+      }
+    }
+
+    if (tabLoginBtn && tabRegisterBtn) {
+      tabLoginBtn.addEventListener('click', () => showTab('login'));
+      tabRegisterBtn.addEventListener('click', () => showTab('register'));
+    }
+
+    document.querySelectorAll('.switch-to-register').forEach(b => b.addEventListener('click', () => showTab('register')));
+    document.querySelectorAll('.switch-to-login').forEach(b => b.addEventListener('click', () => showTab('login')));
+
+    // Revisar hash de URL al cargar
+    if (window.location.hash === '#register' || new URLSearchParams(window.location.search).get('tab') === 'register') {
+      showTab('register');
+    }
+
+    // Toggles de contraseña
+    function setupPasswordToggle(btnId, inputId) {
+      const btn = document.getElementById(btnId);
+      const input = document.getElementById(inputId);
+      if (btn && input) {
+        btn.addEventListener('click', () => {
+          const isHidden = input.type === 'password';
+          input.type = isHidden ? 'text' : 'password';
+          btn.textContent = isHidden ? 'Ocultar' : 'Mostrar';
+        });
+      }
+    }
+    setupPasswordToggle('toggle-login-password', 'login-password');
+    setupPasswordToggle('toggle-register-password', 'reg-password');
+
+    // Medidor de fortaleza de contraseña en registro
+    const regPwd = document.getElementById('reg-password');
+    const strengthBar = document.getElementById('pwd-strength-bar');
+    const strengthLabel = document.getElementById('pwd-strength-label');
+    const strengthWrap = document.getElementById('pwd-strength');
+
+    if (regPwd && strengthBar) {
+      regPwd.addEventListener('input', () => {
+        const val = regPwd.value;
+        strengthWrap.style.display = val ? 'block' : 'none';
+        let score = 0;
+        if (val.length >= 8) score++;
+        if (/[A-Z]/.test(val)) score++;
+        if (/[0-9]/.test(val)) score++;
+        if (/[^A-Za-z0-9]/.test(val)) score++;
+
+        const levels = [
+          { pct: 20, color: 'var(--red)', label: 'Muy débil' },
+          { pct: 40, color: 'var(--red-light)', label: 'Débil' },
+          { pct: 65, color: 'var(--amber)', label: 'Aceptable' },
+          { pct: 85, color: 'var(--cyan)', label: 'Fuerte' },
+          { pct: 100, color: 'var(--green)', label: 'Excelente' },
+        ];
+        const lvl = levels[Math.min(score, 4)];
+        strengthBar.style.width = lvl.pct + '%';
+        strengthBar.style.background = lvl.color;
+        strengthLabel.textContent = lvl.label;
+        strengthLabel.style.color = lvl.color;
+      });
+    }
+
+    // Confirmación de contraseña
+    const confirmPwd = document.getElementById('reg-password-confirm');
+    const matchIcon = document.getElementById('pwd-match-icon');
+    if (confirmPwd && matchIcon && regPwd) {
+      confirmPwd.addEventListener('input', () => {
+        if (!confirmPwd.value) { matchIcon.textContent = ''; return; }
+        const matches = confirmPwd.value === regPwd.value;
+        matchIcon.textContent = matches ? 'Coincide' : 'No coincide';
+        matchIcon.style.color = matches ? 'var(--green)' : 'var(--red-light)';
+      });
+    }
+  </script>
+</body>
+
+</html>

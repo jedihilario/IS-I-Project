@@ -7,6 +7,3 @@ class Question (Post):
     title = db.Column(db.String(63), nullable = False)
     author_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
-
-    # author = relationship(back_populates = 'questions')
-    # category = relationship(back_populates = 'questions')

@@ -7,5 +7,3 @@ class Vote (db.Model):
     date = db.Column(db.Date)
     post_id = db.Column(db.Integer, db.ForeignKey('post.id'))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-
-    # post = relationship(back_populates = 'votes')

@@ -3,8 +3,14 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# SQLite
+*.db
+
 # C extensions
 *.so
+
+# Text editors
+.vscode
 
 # Distribution / packaging
 .Python

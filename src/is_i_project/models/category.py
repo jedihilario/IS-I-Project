@@ -1,5 +1,10 @@
 from is_i_project.extensions import db
 
-class Category (db.Model):
-    id = db.Column(db.Integer, primary_key = True)
-    name = db.Column(db.String(63), unique = False)
+
+class Category(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(63), unique=False)
+
+    questions = db.relationship(
+        'Question', back_populates='category', foreign_keys='Question.category_id'
+    )

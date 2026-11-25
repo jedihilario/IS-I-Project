@@ -12,9 +12,6 @@
     <span class="navbar-logo-text">QAI</span>
   </a>
 
-
-  </div>
-
   <!-- Actions -->
   <div class="navbar-actions">
     <button type="button" class="theme-toggle" id="theme-toggle" data-theme-toggle aria-label="Cambiar modo de color">
@@ -22,12 +19,18 @@
     </button>
 
     {% if current_user %}
+    {% set cur_name = current_user.name if current_user.name is defined else current_user.nombre %}
+    {% set cur_avatar = current_user.avatar_url if current_user.avatar_url is defined else (current_user.foto if current_user.foto is defined else none) %}
     <a href="{{ url_for('question_new') }}" class="navbar-btn btn-primary" id="btn-ask-question">
       Preguntar
     </a>
-    <a href="{{ url_for('profile', user_id=current_user.id) }}" class="user-avatar" title="{{ current_user.nombre }}"
+    <a href="{{ url_for('profile', user_id=current_user.id) }}" class="user-avatar" title="{{ cur_name }}"
       id="user-avatar-nav">
-      {{ current_user.nombre[0] | upper }}
+      {% if cur_avatar %}
+        <img src="{{ cur_avatar }}" alt="{{ cur_name }}" />
+      {% else %}
+        {{ cur_name[0] | upper if cur_name else '?' }}
+      {% endif %}
     </a>
     {% else %}
     <a href="{{ url_for('login') }}" class="navbar-btn btn-ghost" id="btn-login">Iniciar sesión</a>

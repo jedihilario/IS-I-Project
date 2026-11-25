@@ -420,26 +420,6 @@ function initFormValidation() {
   });
 }
 
-// ─── Admin Role Change ────────────────────────────────────────
-function initAdminRoles() {
-  document.querySelectorAll('[data-role-select]').forEach(sel => {
-    sel.addEventListener('change', async function () {
-      const userId = this.dataset.roleSelect;
-      const role   = this.value;
-      try {
-        await fetch(`/api/admin/users/${userId}/role`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ role })
-        });
-        Toast.show(`Rol actualizado a "${role}"`, 'success');
-      } catch {
-        Toast.show('No se pudo actualizar el rol', 'error');
-      }
-    });
-  });
-}
-
 // ─── Smooth number count animation ────────────────────────────
 function initCountUp() {
   const observer = new IntersectionObserver(entries => {
@@ -530,7 +510,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initCharCounter();
   initTagInput();
   initFormValidation();
-  initAdminRoles();
   initCountUp();
   initRepBars();
   initKeyboardShortcuts();

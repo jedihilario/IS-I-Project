@@ -30,6 +30,7 @@
   </a>
 
   {% if current_user %}
+  {% set cur_role = current_user.role if current_user.role is defined else current_user.rol %}
   <span class="sidebar-section-title">Mi cuenta</span>
 
   <a href="{{ url_for('profile', user_id=current_user.id) }}" class="sidebar-link" id="nav-profile">
@@ -37,7 +38,7 @@
     Mi perfil
   </a>
 
-  {% if current_user.rol == 'admin' %}
+  {% if cur_role == 'admin' %}
   <span class="sidebar-section-title">Administración</span>
   <a href="{{ url_for('admin_dashboard') }}" class="sidebar-link" id="nav-admin">
     <span class="sidebar-link-icon" aria-hidden="true">⚙️</span>

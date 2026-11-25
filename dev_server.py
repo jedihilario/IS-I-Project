@@ -9,9 +9,10 @@ Ejecutar:
 Luego abrir: http://localhost:5000
 """
 
-from flask import Flask, render_template, redirect, url_for, request, session, flash
-from datetime import datetime, timedelta
+import os
 import random
+from datetime import datetime, timedelta
+from flask import Flask, render_template, redirect, url_for, request, session, flash
 
 app = Flask(
     __name__,
@@ -20,6 +21,18 @@ app = Flask(
 )
 app.secret_key = "dev-secret-key-only"
 
+AVATARS_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "src", "is_i_project", "static", "uploads", "avatars")
+os.makedirs(AVATARS_FOLDER, exist_ok=True)
+
+
+def get_user_avatar(user_id):
+    for ext in [".png", ".jpg", ".jpeg", ".webp"]:
+        filename = f"user_{user_id}{ext}"
+        if os.path.exists(os.path.join(AVATARS_FOLDER, filename)):
+            return f"/static/uploads/avatars/{filename}"
+    return None
+
+
 # ─── Mock data helpers ──────────────────────────────────────
 
 def mock_user(id=1, nombre="Valentín Tello", rol="admin"):
@@ -27,15 +40,26 @@ def mock_user(id=1, nombre="Valentín Tello", rol="admin"):
         pass
     u = U()
     u.id = id
+    u.name = nombre
     u.nombre = nombre
     u.email = f"{nombre.lower().replace(' ', '.')}@example.com"
+    u.role = rol
     u.rol = rol
+    u.type = "User"
     u.tipo = "Usuario"
-    u.reputacion = random.randint(50, 3500)
-    u.fecha_registro = datetime(2024, 3, 15)
-    u.preguntas_count = random.randint(2, 25)
-    u.respuestas_count = random.randint(5, 60)
-    u.getNombreVisible = lambda: u.nombre
+    u.reputation = random.randint(50, 3500)
+    u.reputacion = u.reputation
+    u.created_at = datetime(2024, 3, 15)
+    u.registered_at = u.created_at
+    u.fecha_registro = u.created_at
+    u.questions_count = random.randint(2, 25)
+    u.preguntas_count = u.questions_count
+    u.answers_count = random.randint(5, 60)
+    u.respuestas_count = u.answers_count
+    u.avatar_url = get_user_avatar(u.id)
+    u.foto = u.avatar_url
+    u.getNombreVisible = lambda: u.name
+    u.get_display_name = lambda: u.name
     return u
 
 
@@ -47,15 +71,26 @@ def get_current_user():
         pass
     u = U()
     u.id = user_data.get("id", 1)
-    u.nombre = user_data.get("nombre", "Usuario")
+    u.name = user_data.get("name") or user_data.get("nombre", "Usuario")
+    u.nombre = u.name
     u.email = user_data.get("email", "usuario@example.com")
-    u.rol = user_data.get("rol", "usuario")
+    u.role = user_data.get("role") or user_data.get("rol", "usuario")
+    u.rol = u.role
+    u.type = "User"
     u.tipo = "Usuario"
-    u.reputacion = user_data.get("reputacion", 100)
-    u.fecha_registro = datetime(2024, 3, 15)
-    u.preguntas_count = user_data.get("preguntas_count", 0)
-    u.respuestas_count = user_data.get("respuestas_count", 0)
-    u.getNombreVisible = lambda: u.nombre
+    u.reputation = user_data.get("reputation") or user_data.get("reputacion", 100)
+    u.reputacion = u.reputation
+    u.created_at = datetime(2024, 3, 15)
+    u.registered_at = u.created_at
+    u.fecha_registro = u.created_at
+    u.questions_count = user_data.get("questions_count") or user_data.get("preguntas_count", 0)
+    u.preguntas_count = u.questions_count
+    u.answers_count = user_data.get("answers_count") or user_data.get("respuestas_count", 0)
+    u.respuestas_count = u.answers_count
+    u.avatar_url = get_user_avatar(u.id)
+    u.foto = u.avatar_url
+    u.getNombreVisible = lambda: u.name
+    u.get_display_name = lambda: u.name
     return u
 
 
@@ -63,6 +98,7 @@ def mock_tag(nombre):
     class T:
         pass
     t = T()
+    t.name = nombre
     t.nombre = nombre
     t.count = random.randint(3, 50)
     return t
@@ -72,10 +108,13 @@ def mock_categoria(nombre, count=None, desc=None):
     class C:
         pass
     c = C()
+    c.name = nombre
     c.nombre = nombre
     c.count = count or random.randint(5, 80)
-    c.descripcion = desc or f"Preguntas relacionadas con {nombre}"
-    c.respondidas = c.count // 2
+    c.description = desc or f"Preguntas relacionadas con {nombre}"
+    c.descripcion = c.description
+    c.answered_count = c.count // 2
+    c.respondidas = c.answered_count
     return c
 
 
@@ -88,19 +127,29 @@ def mock_pregunta(id, titulo, cuerpo="", tags=None, categoria="Backend",
         pass
     q = Q()
     q.id = id
+    q.title = titulo
     q.titulo = titulo
-    q.cuerpo = cuerpo or f"<p>{titulo}</p><p>Este es el cuerpo de ejemplo de la pregunta. Podría incluir código, diagramas o cualquier detalle relevante para obtener una buena respuesta.</p>"
+    q.body = cuerpo or f"<p>{titulo}</p><p>Este es el cuerpo de ejemplo de la pregunta. Podría incluir código, diagramas o cualquier detalle relevante para obtener una buena respuesta.</p>"
+    q.cuerpo = q.body
     q.tags = tags or ["python", "flask"]
+    q.category = categoria
     q.categoria = categoria
-    q.votos = votos if votos is not None else random.randint(-2, 42)
-    q.puntuacion = q.votos
-    q.respuestas_count = respuestas_count if respuestas_count is not None else random.randint(0, 8)
+    q.score = votos if votos is not None else random.randint(-2, 42)
+    q.votes = q.score
+    q.votos = q.score
+    q.puntuacion = q.score
+    q.answers_count = respuestas_count if respuestas_count is not None else random.randint(0, 8)
+    q.respuestas_count = q.answers_count
+    q.has_accepted = tiene_aceptada
     q.tiene_aceptada = tiene_aceptada
+    q.has_ai_response = tiene_respuesta_ia
     q.tiene_respuesta_ia = tiene_respuesta_ia
-    q.vistas = random.randint(10, 500)
-    q.fecha_publicacion = datetime.now() - timedelta(days=dias_atras)
-    q.autor = mock_user(id=id + 10, nombre=random.choice(["Román M.", "Juan A.", "Tomás M.", "Hilario Y.", "Valentín T."]))
-    q.autor.reputacion = random.randint(100, 2000)
+    q.views = random.randint(10, 500)
+    q.vistas = q.views
+    q.post_date = datetime.now() - timedelta(days=dias_atras)
+    q.fecha_publicacion = q.post_date
+    q.author = mock_user(id=id + 10, nombre=random.choice(["Román M.", "Juan A.", "Tomás M.", "Hilario Y.", "Valentín T."]))
+    q.autor = q.author
     return q
 
 
@@ -111,24 +160,33 @@ def mock_respuesta(id, cuerpo, es_aceptada=False, es_ia=False, votos=None):
         pass
     r = R()
     r.id = id
-    r.cuerpo = f"<p>{cuerpo}</p><p>Espero que esto ayude. Si tenés alguna duda adicional, no dudes en preguntar.</p>"
+    r.body = f"<p>{cuerpo}</p><p>Espero que esto ayude. Si tenés alguna duda adicional, no dudes en preguntar.</p>"
+    r.cuerpo = r.body
+    r.accepted = es_aceptada
     r.es_aceptada = es_aceptada
-    r.puntuacion = votos if votos is not None else random.randint(0, 20)
+    r.score = votos if votos is not None else random.randint(0, 20)
+    r.puntuacion = r.score
     r.user_vote = 0
-    r.fecha_publicacion = datetime.now() - timedelta(hours=random.randint(1, 48))
+    r.post_date = datetime.now() - timedelta(hours=random.randint(1, 48))
+    r.fecha_publicacion = r.post_date
     if es_ia:
         a = A()
+        a.type = "AI"
         a.tipo = "IA"
         a.id = 999
+        a.modelName = "GPT-4o"
         a.nombreModelo = "GPT-4o"
+        a.reputation = 0
         a.reputacion = 0
         a.getNombreVisible = lambda: "AutorIA"
+        a.get_display_name = lambda: "AutorIA"
+        r.author = a
         r.autor = a
     else:
-        r.autor = mock_user(id=id + 20, nombre=random.choice(["Román M.", "Hilario Y.", "Juan A."]))
-        r.autor.tipo = "Usuario"
-        r.autor.getNombreVisible = lambda: r.autor.nombre
-    r.pregunta = mock_pregunta(id + 100, "Pregunta de ejemplo")
+        r.author = mock_user(id=id + 20, nombre=random.choice(["Román M.", "Hilario Y.", "Juan A."]))
+        r.autor = r.author
+    r.question = mock_pregunta(id + 100, "Pregunta de ejemplo")
+    r.pregunta = r.question
     return r
 
 
@@ -210,7 +268,7 @@ def require_login():
     if request.path.startswith("/static") or request.path == "/favicon.ico":
         return None
 
-    public_endpoints = {"index", "login", "register", "static", "forgot_password"}
+    public_endpoints = {"index", "login", "register", "static"}
     endpoint = request.endpoint
 
     user = get_current_user()
@@ -277,12 +335,12 @@ def question_detail(question_id):
 @app.route("/preguntas/crear", methods=["POST"], endpoint="question_create")
 def question_new():
     if request.method == "POST":
-        titulo = request.form.get("titulo", "").strip()
-        cuerpo = request.form.get("cuerpo", "").strip()
-        categoria = request.form.get("categoria", "").strip() or "General"
+        titulo = (request.form.get("title") or request.form.get("titulo", "")).strip()
+        cuerpo = (request.form.get("body") or request.form.get("cuerpo", "")).strip()
+        categoria = (request.form.get("category") or request.form.get("categoria", "")).strip() or "General"
         raw_tags = request.form.get("tags", "").strip()
         tags = [t.strip() for t in raw_tags.split(",") if t.strip()] if raw_tags else ["general"]
-        solicitar_ia = bool(request.form.get("solicitar_ia"))
+        solicitar_ia = bool(request.form.get("request_ai") or request.form.get("solicitar_ia"))
 
         nueva_id = max((q.id for q in SAMPLE_QUESTIONS), default=0) + 1
         nueva_q = mock_pregunta(
@@ -298,10 +356,11 @@ def question_new():
             dias_atras=0,
         )
         nueva_q.autor = get_current_user() or mock_user()
+        nueva_q.author = nueva_q.autor
         SAMPLE_QUESTIONS.insert(0, nueva_q)
         return redirect(url_for("question_detail", question_id=nueva_q.id))
 
-    return render_template("question_new.html", categorias=CATEGORIAS)
+    return render_template("question_new.html", categories=CATEGORIAS, categorias=CATEGORIAS)
 
 
 @app.route("/login", methods=["GET", "POST"], endpoint="login")
@@ -317,11 +376,16 @@ def login():
         rol = "admin" if "admin" in email.lower() else "usuario"
         session["user"] = {
             "id": 1,
+            "name": nombre,
             "nombre": nombre,
             "email": email,
+            "role": rol,
             "rol": rol,
+            "reputation": 150,
             "reputacion": 150,
+            "questions_count": 2,
             "preguntas_count": 2,
+            "answers_count": 5,
             "respuestas_count": 5,
         }
         flash(f"¡Bienvenido de nuevo, {nombre}!", "success")
@@ -332,10 +396,10 @@ def login():
 @app.route("/registro", methods=["GET", "POST"], endpoint="register")
 def register():
     if request.method == "POST":
-        nombre = request.form.get("nombre", "").strip()
+        nombre = (request.form.get("name") or request.form.get("nombre", "")).strip()
         email = request.form.get("email", "").strip()
         password = request.form.get("password", "").strip()
-        rol = request.form.get("rol", "usuario")
+        rol = request.form.get("role") or request.form.get("rol", "usuario")
 
         if not nombre or not email or not password:
             flash("Por favor completá todos los campos obligatorios.", "error")
@@ -343,11 +407,16 @@ def register():
 
         session["user"] = {
             "id": random.randint(10, 999),
+            "name": nombre,
             "nombre": nombre,
             "email": email,
+            "role": rol,
             "rol": rol,
+            "reputation": 0,
             "reputacion": 0,
+            "questions_count": 0,
             "preguntas_count": 0,
+            "answers_count": 0,
             "respuestas_count": 0,
         }
         flash(f"Cuenta creada exitosamente. ¡Bienvenido, {nombre}!", "success")
@@ -364,7 +433,7 @@ def logout():
 
 @app.route("/usuario/<int:user_id>")
 def profile(user_id):
-    usuario = mock_user(user_id, "Valentín Tello", "admin")
+    usuario = mock_user(user_id, "GUASA!", "admin")
     usuario.tipo = "Usuario"
     usuario.fecha_registro = datetime(2024, 1, 10)
     usuario.preguntas_count = 12
@@ -410,11 +479,6 @@ def admin_config_ai():
     return redirect(url_for("admin_dashboard"))
 
 
-@app.route("/admin/usuarios/<int:user_id>/eliminar")
-def admin_delete_user(user_id):
-    return redirect(url_for("admin_dashboard"))
-
-
 @app.route("/categorias")
 def categories():
     return render_template("categories.html",
@@ -444,14 +508,26 @@ def question_edit(question_id):
     return redirect(url_for("question_detail", question_id=question_id))
 
 
-@app.route("/perfil/editar")
-def profile_edit():
-    return redirect(url_for("profile", user_id=CURRENT_USER.id))
+@app.route("/perfil/foto", methods=["POST"], endpoint="profile_photo_upload")
+def profile_photo_upload():
+    cur = get_current_user()
+    if not cur:
+        flash("Debes iniciar sesión para cambiar tu foto.", "error")
+        return redirect(url_for("login"))
 
+    file = request.files.get("avatar")
+    if file and file.filename:
+        ext = os.path.splitext(file.filename)[1].lower()
+        if ext not in [".png", ".jpg", ".jpeg", ".webp"]:
+            ext = ".png"
+        filename = f"user_{cur.id}{ext}"
+        filepath = os.path.join(AVATARS_FOLDER, filename)
+        file.save(filepath)
+        flash("¡Foto de perfil actualizada exitosamente!", "success")
+    else:
+        flash("No se seleccionó ninguna imagen válida.", "error")
 
-@app.route("/recuperar-contrasena")
-def forgot_password():
-    return redirect(url_for("login"))
+    return redirect(url_for("profile", user_id=cur.id))
 
 
 # ─── Run ────────────────────────────────────────────────────

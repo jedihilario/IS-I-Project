@@ -1,0 +1,328 @@
+{% extends "base.html" %}
+
+{% set user_list = users if users is defined else (usuarios | default([])) %}
+{% set recent_q_list = recent_questions if recent_questions is defined else (preguntas_recientes | default([])) %}
+
+{% block title %}Panel de Administración — QAI{% endblock %}
+{% block meta_description %}Gestión de usuarios, roles, preguntas y configuración del sistema QAI.{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Panel de administración</h1>
+    <p class="page-subtitle">Gestión de la plataforma QAI</p>
+  </div>
+  <div style="display:flex;gap:var(--space-3);">
+    <a href="{{ url_for('home') }}" class="btn btn-secondary" id="btn-back-home">← Volver al inicio</a>
+  </div>
+</div>
+
+<!-- ── STATS OVERVIEW ── -->
+<div class="stats-grid" id="admin-stats" role="region" aria-label="Estadísticas globales">
+
+  <div class="stat-card" id="stat-users">
+    <div>
+      <div class="stat-card-value" data-count-up="{{ stats.total_users if stats.total_users is defined else (stats.total_usuarios | default(0)) }}">{{ stats.total_users if stats.total_users is defined else (stats.total_usuarios | default(0)) }}</div>
+      <div class="stat-card-label">Usuarios registrados</div>
+      <div class="stat-card-trend trend-up" aria-label="Tendencia positiva">+{{ stats.new_users_week if stats.new_users_week is defined else (stats.nuevos_usuarios_semana | default(0)) }} esta semana</div>
+    </div>
+  </div>
+
+  <div class="stat-card" id="stat-questions">
+    <div>
+      <div class="stat-card-value" data-count-up="{{ stats.total_questions if stats.total_questions is defined else (stats.total_preguntas | default(0)) }}">{{ stats.total_questions if stats.total_questions is defined else (stats.total_preguntas | default(0)) }}</div>
+      <div class="stat-card-label">Preguntas totales</div>
+      <div class="stat-card-trend trend-up">+{{ stats.new_questions_week if stats.new_questions_week is defined else (stats.nuevas_preguntas_semana | default(0)) }} esta semana</div>
+    </div>
+  </div>
+
+  <div class="stat-card" id="stat-answers">
+    <div>
+      <div class="stat-card-value" data-count-up="{{ stats.total_answers if stats.total_answers is defined else (stats.total_respuestas | default(0)) }}">{{ stats.total_answers if stats.total_answers is defined else (stats.total_respuestas | default(0)) }}</div>
+      <div class="stat-card-label">Respuestas totales</div>
+      <div class="stat-card-trend trend-up">+{{ stats.new_answers_week if stats.new_answers_week is defined else (stats.nuevas_respuestas_semana | default(0)) }} esta semana</div>
+    </div>
+  </div>
+
+  <div class="stat-card" id="stat-ai">
+    <div>
+      <div class="stat-card-value" data-count-up="{{ stats.ai_answers if stats.ai_answers is defined else (stats.respuestas_ia | default(0)) }}">{{ stats.ai_answers if stats.ai_answers is defined else (stats.respuestas_ia | default(0)) }}</div>
+      <div class="stat-card-label">Respuestas por IA</div>
+      <div class="stat-card-trend" style="color:var(--text-muted);">
+        {{ stats.pct_ia | default(0) }}% del total
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── TABS ── -->
+<div data-tabs id="admin-tabs">
+  <div class="tabs" role="tablist" aria-label="Secciones de administración">
+    <button class="tab-btn active" data-tab-btn="users"     id="tab-admin-users"     role="tab" aria-selected="true">Usuarios</button>
+    <button class="tab-btn"        data-tab-btn="questions" id="tab-admin-questions" role="tab" aria-selected="false">Preguntas</button>
+    <button class="tab-btn"        data-tab-btn="ai-config" id="tab-admin-ai"        role="tab" aria-selected="false">Config IA</button>
+  </div>
+
+  <!-- ─ USERS TAB ─ -->
+  <div data-tab-content="users" class="tab-content active" role="tabpanel" aria-labelledby="tab-admin-users" id="panel-admin-users">
+    <div class="table-wrapper">
+      <div class="table-header">
+        <span class="table-title">Gestión de usuarios</span>
+        <input type="search" placeholder="Buscar usuario…" id="user-search"
+               style="width:220px;height:36px;font-size:var(--text-sm);" aria-label="Buscar usuario" />
+      </div>
+      <table id="users-table" aria-label="Tabla de usuarios">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Usuario</th>
+            <th>Email</th>
+            <th>Rol</th>
+            <th>Reputación</th>
+            <th>Preguntas</th>
+            <th>Respuestas</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if user_list %}
+            {% for u in user_list %}
+            {% set u_name = u.name if u.name is defined else u.nombre %}
+            {% set u_role = u.role if u.role is defined else u.rol %}
+            {% set u_rep = u.reputation if u.reputation is defined else (u.reputacion | default(0)) %}
+            {% set u_q = u.questions_count if u.questions_count is defined else (u.preguntas_count | default(0)) %}
+            {% set u_a = u.answers_count if u.answers_count is defined else (u.respuestas_count | default(0)) %}
+            <tr id="user-row-{{ u.id }}">
+              <td style="color:var(--text-muted);">{{ u.id }}</td>
+              <td>
+                <div style="display:flex;align-items:center;gap:var(--space-2);">
+                  <div class="author-avatar" aria-hidden="true" style="width:28px;height:28px;font-size:11px;flex-shrink:0;">
+                    {{ u_name[0] | upper if u_name else '?' }}
+                  </div>
+                  <a href="{{ url_for('profile', user_id=u.id) }}" style="color:var(--text-primary);font-weight:600;" id="admin-u-link-{{ u.id }}">
+                    {{ u_name }}
+                  </a>
+                </div>
+              </td>
+              <td style="font-size:var(--text-xs);">{{ u.email }}</td>
+              <td>
+                <span class="badge {{ 'badge-amber' if u_role == 'admin' else 'badge-primary' }}">
+                  {{ u_role | title }}
+                </span>
+              </td>
+              <td>{{ u_rep }}</td>
+              <td>{{ u_q }}</td>
+              <td>{{ u_a }}</td>
+              <td>
+                <div style="display:flex;gap:var(--space-2);">
+                  <a href="{{ url_for('profile', user_id=u.id) }}" class="btn btn-sm btn-secondary" id="admin-view-{{ u.id }}">Ver</a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="8" style="text-align:center;padding:var(--space-8);color:var(--text-muted);">
+                No hay usuarios registrados.
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ─ QUESTIONS TAB ─ -->
+  <div data-tab-content="questions" class="tab-content" role="tabpanel" aria-labelledby="tab-admin-questions" id="panel-admin-questions">
+    <div class="table-wrapper">
+      <div class="table-header">
+        <span class="table-title">Preguntas recientes</span>
+        <span style="font-size:var(--text-xs);color:var(--text-muted);">Últimas {{ recent_q_list | length }}</span>
+      </div>
+      <table id="questions-table" aria-label="Tabla de preguntas">
+        <thead>
+          <tr>
+            <th>Título</th>
+            <th>Autor</th>
+            <th>Votos</th>
+            <th>Resp.</th>
+            <th>Estado</th>
+            <th>Fecha</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if recent_q_list %}
+            {% for q in recent_q_list %}
+            {% set q_title = q.title or q.titulo %}
+            {% set q_author = q.author or q.autor %}
+            {% set q_author_name = q_author.name if (q_author and q_author.name is defined) else (q_author.nombre if (q_author and q_author.nombre is defined) else 'Anónimo') %}
+            {% set q_score = q.score if q.score is defined else (q.votes if q.votes is defined else q.votos) %}
+            {% set q_ans = q.answers_count if q.answers_count is defined else (q.respuestas_count | default(0)) %}
+            {% set q_accepted = q.has_accepted if q.has_accepted is defined else q.tiene_aceptada %}
+            {% set q_has_ai = q.has_ai_response if q.has_ai_response is defined else q.tiene_respuesta_ia %}
+            {% set q_dt = q.post_date or q.fecha_publicacion %}
+            <tr id="admin-q-row-{{ q.id }}">
+              <td style="max-width:300px;">
+                <a href="{{ url_for('question_detail', question_id=q.id) }}"
+                   style="color:var(--text-primary);" id="admin-q-link-{{ q.id }}">
+                  {{ q_title | truncate(60) }}
+                </a>
+              </td>
+              <td>
+                <a href="{{ url_for('profile', user_id=q_author.id if q_author else 0) }}" style="color:var(--primary);">
+                  {{ q_author_name }}
+                </a>
+              </td>
+              <td>{{ q_score }}</td>
+              <td>{{ q_ans }}</td>
+              <td>
+                {% if q_accepted %}
+                  <span class="badge badge-accepted">Resuelta</span>
+                {% elif q_ans > 0 %}
+                  <span class="badge badge-cyan">Respondida</span>
+                {% else %}
+                  <span class="badge" style="background:rgba(220,38,38,0.1);border:1px solid rgba(220,38,38,0.3);color:var(--red-light);">Pendiente</span>
+                {% endif %}
+                {% if q_has_ai %}
+                  <span class="badge badge-ai" style="margin-left:4px;">IA</span>
+                {% endif %}
+              </td>
+              <td style="font-size:var(--text-xs);white-space:nowrap;">
+                {{ q_dt.strftime('%d %b %Y') if (q_dt and q_dt.strftime is defined) else (q_dt | default('-')) }}
+              </td>
+              <td>
+                <div style="display:flex;gap:var(--space-2);">
+                  <a href="{{ url_for('question_detail', question_id=q.id) }}" class="btn btn-sm btn-secondary" id="admin-qview-{{ q.id }}">Ver</a>
+                  <button class="btn btn-sm btn-danger" id="admin-qdel-{{ q.id }}"
+                    onclick="if(confirm('¿Eliminar esta pregunta?')) window.location.href='{{ url_for('question_delete', question_id=q.id) }}'">
+                    Eliminar
+                  </button>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          {% else %}
+            <tr>
+              <td colspan="7" style="text-align:center;padding:var(--space-8);color:var(--text-muted);">
+                No hay preguntas registradas.
+              </td>
+            </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ─ AI CONFIG TAB ─ -->
+  <div data-tab-content="ai-config" class="tab-content" role="tabpanel" aria-labelledby="tab-admin-ai" id="panel-admin-ai">
+    <div class="form-card" style="max-width:640px;">
+      <h2 style="font-size:var(--text-xl);font-weight:700;margin-bottom:var(--space-6);">
+        Configuración de AutorIA
+      </h2>
+
+      <form method="POST" action="{{ url_for('admin_config_ai') }}" id="ai-config-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+        <!-- Provider -->
+        <div class="form-group">
+          <label class="form-label">Proveedor de IA activo</label>
+          <div class="ai-selector" role="radiogroup">
+            <div class="ai-option">
+              <input type="radio" name="ai_provider" id="admin-ai-openai" value="openai"
+                     {{ 'checked' if ai_config.provider == 'openai' }} />
+              <label for="admin-ai-openai">
+                <span class="ai-name">OpenAI</span>
+                <span class="ai-desc">GPT-4o</span>
+              </label>
+            </div>
+            <div class="ai-option">
+              <input type="radio" name="ai_provider" id="admin-ai-gemini" value="gemini"
+                     {{ 'checked' if ai_config.provider == 'gemini' }} />
+              <label for="admin-ai-gemini">
+                <span class="ai-name">Gemini</span>
+                <span class="ai-desc">Google AI</span>
+              </label>
+            </div>
+            <div class="ai-option">
+              <input type="radio" name="ai_provider" id="admin-ai-local" value="local"
+                     {{ 'checked' if ai_config.provider == 'local' }} />
+              <label for="admin-ai-local">
+                <span class="ai-name">Local</span>
+                <span class="ai-desc">Modelo propio</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Umbral sin respuesta -->
+        <div class="form-group">
+          <label for="ai-umbral" class="form-label">
+            Umbral de intervención (horas sin respuesta)
+          </label>
+          <input
+            type="number"
+            id="ai-umbral"
+            name="umbral_horas"
+            min="1"
+            max="720"
+            value="{{ ai_config.hours_threshold if ai_config.hours_threshold is defined else (ai_config.umbral_horas | default(24)) }}"
+          />
+          <span class="form-hint">La IA responderá automáticamente preguntas que superen este tiempo sin respuesta.</span>
+        </div>
+
+        <!-- Max wait -->
+        <div class="form-group">
+          <label for="ai-timeout" class="form-label">Tiempo de espera máximo (segundos)</label>
+          <input
+            type="number"
+            id="ai-timeout"
+            name="timeout_segundos"
+            min="5"
+            max="300"
+            value="{{ ai_config.timeout | default(60) }}"
+          />
+        </div>
+
+        <!-- Enable toggle -->
+        <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-5);">
+          <input type="checkbox" id="ai-enabled" name="ai_enabled" value="1"
+                 {{ 'checked' if ai_config.enabled }}
+                 style="width:20px;height:20px;accent-color:var(--primary);cursor:pointer;" />
+          <label for="ai-enabled" style="font-size:var(--text-sm);cursor:pointer;">
+            Activar respuesta automática de IA
+          </label>
+        </div>
+
+        <div style="display:flex;gap:var(--space-3);">
+          <button type="submit" class="btn btn-primary" id="btn-save-ai-config">
+            Guardar configuración
+          </button>
+          <button type="reset" class="btn btn-secondary" id="btn-reset-ai-config">
+            Resetear
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div><!-- /data-tabs -->
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  const userSearch = document.getElementById('user-search');
+  if (userSearch) {
+    userSearch.addEventListener('input', () => {
+      const q = userSearch.value.toLowerCase();
+      document.querySelectorAll('#users-table tbody tr').forEach(row => {
+        const text = row.textContent.toLowerCase();
+        row.style.display = text.includes(q) ? '' : 'none';
+      });
+    });
+  }
+</script>
+{% endblock %}

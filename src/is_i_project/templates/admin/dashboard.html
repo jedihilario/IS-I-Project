@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 
+{% set user_list = users if users is defined else (usuarios | default([])) %}
+{% set recent_q_list = recent_questions if recent_questions is defined else (preguntas_recientes | default([])) %}
+
 {% block title %}Panel de Administración — QAI{% endblock %}
 {% block meta_description %}Gestión de usuarios, roles, preguntas y configuración del sistema QAI.{% endblock %}
 
@@ -20,31 +23,31 @@
 
   <div class="stat-card" id="stat-users">
     <div>
-      <div class="stat-card-value" data-count-up="{{ stats.total_usuarios | default(0) }}">{{ stats.total_usuarios | default(0) }}</div>
+      <div class="stat-card-value" data-count-up="{{ stats.total_users if stats.total_users is defined else (stats.total_usuarios | default(0)) }}">{{ stats.total_users if stats.total_users is defined else (stats.total_usuarios | default(0)) }}</div>
       <div class="stat-card-label">Usuarios registrados</div>
-      <div class="stat-card-trend trend-up" aria-label="Tendencia positiva">+{{ stats.nuevos_usuarios_semana | default(0) }} esta semana</div>
+      <div class="stat-card-trend trend-up" aria-label="Tendencia positiva">+{{ stats.new_users_week if stats.new_users_week is defined else (stats.nuevos_usuarios_semana | default(0)) }} esta semana</div>
     </div>
   </div>
 
   <div class="stat-card" id="stat-questions">
     <div>
-      <div class="stat-card-value" data-count-up="{{ stats.total_preguntas | default(0) }}">{{ stats.total_preguntas | default(0) }}</div>
+      <div class="stat-card-value" data-count-up="{{ stats.total_questions if stats.total_questions is defined else (stats.total_preguntas | default(0)) }}">{{ stats.total_questions if stats.total_questions is defined else (stats.total_preguntas | default(0)) }}</div>
       <div class="stat-card-label">Preguntas totales</div>
-      <div class="stat-card-trend trend-up">+{{ stats.nuevas_preguntas_semana | default(0) }} esta semana</div>
+      <div class="stat-card-trend trend-up">+{{ stats.new_questions_week if stats.new_questions_week is defined else (stats.nuevas_preguntas_semana | default(0)) }} esta semana</div>
     </div>
   </div>
 
   <div class="stat-card" id="stat-answers">
     <div>
-      <div class="stat-card-value" data-count-up="{{ stats.total_respuestas | default(0) }}">{{ stats.total_respuestas | default(0) }}</div>
+      <div class="stat-card-value" data-count-up="{{ stats.total_answers if stats.total_answers is defined else (stats.total_respuestas | default(0)) }}">{{ stats.total_answers if stats.total_answers is defined else (stats.total_respuestas | default(0)) }}</div>
       <div class="stat-card-label">Respuestas totales</div>
-      <div class="stat-card-trend trend-up">+{{ stats.nuevas_respuestas_semana | default(0) }} esta semana</div>
+      <div class="stat-card-trend trend-up">+{{ stats.new_answers_week if stats.new_answers_week is defined else (stats.nuevas_respuestas_semana | default(0)) }} esta semana</div>
     </div>
   </div>
 
   <div class="stat-card" id="stat-ai">
     <div>
-      <div class="stat-card-value" data-count-up="{{ stats.respuestas_ia | default(0) }}">{{ stats.respuestas_ia | default(0) }}</div>
+      <div class="stat-card-value" data-count-up="{{ stats.ai_answers if stats.ai_answers is defined else (stats.respuestas_ia | default(0)) }}">{{ stats.ai_answers if stats.ai_answers is defined else (stats.respuestas_ia | default(0)) }}</div>
       <div class="stat-card-label">Respuestas por IA</div>
       <div class="stat-card-trend" style="color:var(--text-muted);">
         {{ stats.pct_ia | default(0) }}% del total
@@ -84,40 +87,37 @@
           </tr>
         </thead>
         <tbody>
-          {% if usuarios %}
-            {% for u in usuarios %}
+          {% if user_list %}
+            {% for u in user_list %}
+            {% set u_name = u.name if u.name is defined else u.nombre %}
+            {% set u_role = u.role if u.role is defined else u.rol %}
+            {% set u_rep = u.reputation if u.reputation is defined else (u.reputacion | default(0)) %}
+            {% set u_q = u.questions_count if u.questions_count is defined else (u.preguntas_count | default(0)) %}
+            {% set u_a = u.answers_count if u.answers_count is defined else (u.respuestas_count | default(0)) %}
             <tr id="user-row-{{ u.id }}">
               <td style="color:var(--text-muted);">{{ u.id }}</td>
               <td>
                 <div style="display:flex;align-items:center;gap:var(--space-2);">
                   <div class="author-avatar" aria-hidden="true" style="width:28px;height:28px;font-size:11px;flex-shrink:0;">
-                    {{ u.nombre[0] | upper }}
+                    {{ u_name[0] | upper if u_name else '?' }}
                   </div>
                   <a href="{{ url_for('profile', user_id=u.id) }}" style="color:var(--text-primary);font-weight:600;" id="admin-u-link-{{ u.id }}">
-                    {{ u.nombre }}
+                    {{ u_name }}
                   </a>
                 </div>
               </td>
               <td style="font-size:var(--text-xs);">{{ u.email }}</td>
               <td>
-                <select class="role-select" data-role-select="{{ u.id }}" aria-label="Rol de {{ u.nombre }}" id="role-{{ u.id }}">
-                  <option value="usuario"   {{ 'selected' if u.rol == 'usuario' }}>Usuario</option>
-                  <option value="moderador" {{ 'selected' if u.rol == 'moderador' }}>Moderador</option>
-                  <option value="admin"     {{ 'selected' if u.rol == 'admin' }}>Admin</option>
-                </select>
+                <span class="badge {{ 'badge-amber' if u_role == 'admin' else 'badge-primary' }}">
+                  {{ u_role | title }}
+                </span>
               </td>
-              <td>{{ u.reputacion | default(0) }}</td>
-              <td>{{ u.preguntas_count | default(0) }}</td>
-              <td>{{ u.respuestas_count | default(0) }}</td>
+              <td>{{ u_rep }}</td>
+              <td>{{ u_q }}</td>
+              <td>{{ u_a }}</td>
               <td>
                 <div style="display:flex;gap:var(--space-2);">
                   <a href="{{ url_for('profile', user_id=u.id) }}" class="btn btn-sm btn-secondary" id="admin-view-{{ u.id }}">Ver</a>
-                  {% if u.id != current_user.id %}
-                  <button class="btn btn-sm btn-danger" id="admin-del-{{ u.id }}"
-                    onclick="if(confirm('¿Eliminar al usuario {{ u.nombre }}? Esta acción es irreversible.')) window.location.href='{{ url_for('admin_delete_user', user_id=u.id) }}'">
-                    Eliminar
-                  </button>
-                  {% endif %}
                 </div>
               </td>
             </tr>
@@ -139,7 +139,7 @@
     <div class="table-wrapper">
       <div class="table-header">
         <span class="table-title">Preguntas recientes</span>
-        <span style="font-size:var(--text-xs);color:var(--text-muted);">Últimas {{ preguntas_recientes | length if preguntas_recientes else 0 }}</span>
+        <span style="font-size:var(--text-xs);color:var(--text-muted);">Últimas {{ recent_q_list | length }}</span>
       </div>
       <table id="questions-table" aria-label="Tabla de preguntas">
         <thead>
@@ -154,36 +154,44 @@
           </tr>
         </thead>
         <tbody>
-          {% if preguntas_recientes %}
-            {% for q in preguntas_recientes %}
+          {% if recent_q_list %}
+            {% for q in recent_q_list %}
+            {% set q_title = q.title or q.titulo %}
+            {% set q_author = q.author or q.autor %}
+            {% set q_author_name = q_author.name if (q_author and q_author.name is defined) else (q_author.nombre if (q_author and q_author.nombre is defined) else 'Anónimo') %}
+            {% set q_score = q.score if q.score is defined else (q.votes if q.votes is defined else q.votos) %}
+            {% set q_ans = q.answers_count if q.answers_count is defined else (q.respuestas_count | default(0)) %}
+            {% set q_accepted = q.has_accepted if q.has_accepted is defined else q.tiene_aceptada %}
+            {% set q_has_ai = q.has_ai_response if q.has_ai_response is defined else q.tiene_respuesta_ia %}
+            {% set q_dt = q.post_date or q.fecha_publicacion %}
             <tr id="admin-q-row-{{ q.id }}">
               <td style="max-width:300px;">
                 <a href="{{ url_for('question_detail', question_id=q.id) }}"
                    style="color:var(--text-primary);" id="admin-q-link-{{ q.id }}">
-                  {{ q.titulo | truncate(60) }}
+                  {{ q_title | truncate(60) }}
                 </a>
               </td>
               <td>
-                <a href="{{ url_for('profile', user_id=q.autor.id) }}" style="color:var(--primary);">
-                  {{ q.autor.nombre }}
+                <a href="{{ url_for('profile', user_id=q_author.id if q_author else 0) }}" style="color:var(--primary);">
+                  {{ q_author_name }}
                 </a>
               </td>
-              <td>{{ q.votos }}</td>
-              <td>{{ q.respuestas_count }}</td>
+              <td>{{ q_score }}</td>
+              <td>{{ q_ans }}</td>
               <td>
-                {% if q.tiene_aceptada %}
+                {% if q_accepted %}
                   <span class="badge badge-accepted">Resuelta</span>
-                {% elif q.respuestas_count > 0 %}
+                {% elif q_ans > 0 %}
                   <span class="badge badge-cyan">Respondida</span>
                 {% else %}
                   <span class="badge" style="background:rgba(220,38,38,0.1);border:1px solid rgba(220,38,38,0.3);color:var(--red-light);">Pendiente</span>
                 {% endif %}
-                {% if q.tiene_respuesta_ia %}
+                {% if q_has_ai %}
                   <span class="badge badge-ai" style="margin-left:4px;">IA</span>
                 {% endif %}
               </td>
               <td style="font-size:var(--text-xs);white-space:nowrap;">
-                {{ q.fecha_publicacion.strftime('%d %b %Y') }}
+                {{ q_dt.strftime('%d %b %Y') if (q_dt and q_dt.strftime is defined) else (q_dt | default('-')) }}
               </td>
               <td>
                 <div style="display:flex;gap:var(--space-2);">
@@ -260,7 +268,7 @@
             name="umbral_horas"
             min="1"
             max="720"
-            value="{{ ai_config.umbral_horas | default(24) }}"
+            value="{{ ai_config.hours_threshold if ai_config.hours_threshold is defined else (ai_config.umbral_horas | default(24)) }}"
           />
           <span class="form-hint">La IA responderá automáticamente preguntas que superen este tiempo sin respuesta.</span>
         </div>

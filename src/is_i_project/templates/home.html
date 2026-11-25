@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Inicio — QAI Plataforma Q&A{% endblock %}
+{% block meta_description %}Explorá preguntas y respuestas de la comunidad, con asistencia de Inteligencia Artificial.{%
+endblock %}
+
+{% block content %}
+<div class="content-grid">
+
+  <!-- ─── FEED PRINCIPAL ─── -->
+  <section class="content-area" aria-label="Feed de preguntas">
+
+    <!-- Header del Feed -->
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Preguntas</h1>
+        <p class="page-subtitle">
+          {% if questions %}
+          {{ questions | length }} pregunta{{ 's' if questions | length != 1 }} en total
+          {% else %}
+          Todavía no hay preguntas. Sé el primero en publicar.
+          {% endif %}
+        </p>
+      </div>
+      <a href="{{ url_for('question_new') }}" class="btn btn-primary" id="btn-ask-top">
+        Nueva pregunta
+      </a>
+    </div>
+
+    <!-- Barra de Filtros -->
+    <div class="filter-bar" data-filter-group id="filter-group" role="tablist" aria-label="Filtrar preguntas">
+      <button class="filter-btn active" data-filter="all" role="tab" id="filter-all">Recientes</button>
+      <button class="filter-btn" data-filter="top" role="tab" id="filter-top">Más votadas</button>
+      <button class="filter-btn" data-filter="unanswered" role="tab" id="filter-unanswered">Sin respuesta</button>
+      <button class="filter-btn" data-filter="ai" role="tab" id="filter-ai">Con IA</button>
+    </div>
+
+    <!-- Lista de Preguntas -->
+    <div id="question-list" role="list" aria-label="Lista de preguntas">
+      {% if questions %}
+      {% for q in questions %}
+      {% include 'components/question_card.html' %}
+      {% endfor %}
+      {% else %}
+      <!-- Estado Vacío -->
+      <div class="empty-state" id="empty-state">
+        <h2 class="empty-state-title">No hay preguntas todavía</h2>
+        <p class="empty-state-desc">Sé el primero en hacer una pregunta. La comunidad y la IA están listos para
+          ayudarte.</p>
+        <a href="{{ url_for('question_new') }}" class="btn btn-primary" id="btn-first-question">
+          Hacer la primera pregunta
+        </a>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Paginación -->
+    {% if pagination and pagination.pages > 1 %}
+    <nav class="pagination" aria-label="Paginación">
+      <button class="page-btn" id="page-prev" {{ 'disabled' if not pagination.has_prev }}
+        aria-label="Página anterior">‹</button>
+      {% for p in pagination.iter_pages() %}
+      {% if p %}
+      <button class="page-btn {{ 'active' if p == pagination.page }}" aria-label="Página {{ p }}"
+        aria-current="{{ 'page' if p == pagination.page }}">
+        {{ p }}
+      </button>
+      {% else %}
+      <span style="color:var(--text-muted);padding:0 4px;">…</span>
+      {% endif %}
+      {% endfor %}
+      <button class="page-btn" id="page-next" {{ 'disabled' if not pagination.has_next }}
+        aria-label="Página siguiente">›</button>
+    </nav>
+    {% endif %}
+
+  </section>
+
+  <!-- ─── SIDEBAR DERECHO (MÉTRICAS & COMUNIDAD) ─── -->
+  {% include 'components/sidebar_community.html' %}
+
+</div>
+{% endblock %}

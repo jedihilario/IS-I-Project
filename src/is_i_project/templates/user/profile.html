@@ -1,68 +1,103 @@
 {% extends "base.html" %}
 
-{% block title %}{{ usuario.nombre }} — Perfil — QAI{% endblock %}
-{% block meta_description %}Perfil de {{ usuario.nombre }} en QAI. Reputación, preguntas, respuestas y actividad.{% endblock %}
+{% set u = user if user is defined else usuario %}
+{% set u_name = u.name if (u and u.name is defined) else (u.nombre if (u and u.nombre is defined) else 'Usuario') %}
+{% set u_role = u.role if (u and u.role is defined) else (u.rol if (u and u.rol is defined) else 'usuario') %}
+{% set u_rep = u.reputation if (u and u.reputation is defined) else (u.reputacion | default(0)) %}
+{% set u_registered = u.registered_at or u.created_at or u.fecha_registro %}
+{% set u_q_count = u.questions_count if (u and u.questions_count is defined) else (u.preguntas_count | default(0)) %}
+{% set u_a_count = u.answers_count if (u and u.answers_count is defined) else (u.respuestas_count | default(0)) %}
+{% set u_avatar = u.avatar_url if (u and u.avatar_url is defined) else (u.foto if (u and u.foto is defined) else none) %}
+{% set q_list = questions if questions is defined else (preguntas | default([])) %}
+{% set a_list = answers if answers is defined else (respuestas | default([])) %}
+{% set v_list = votes if votes is defined else (votos | default([])) %}
+
+{% block title %}{{ u_name }} — Perfil — QAI{% endblock %}
+{% block meta_description %}Perfil de {{ u_name }} en QAI. Reputación, preguntas, respuestas y actividad.{% endblock %}
 
 {% block content %}
 
 <!-- ── PROFILE HEADER ── -->
 <section class="profile-header" aria-label="Perfil de usuario" id="profile-header">
-  <!-- Avatar -->
-  <div class="profile-avatar-lg" aria-hidden="true">
-    {{ usuario.nombre[0] | upper }}
+  <!-- Avatar (con opción de cambiar imagen si es mi cuenta) -->
+  {% if current_user and current_user.id == u.id %}
+  <div class="profile-avatar-container" onclick="document.getElementById('avatar-file-input').click();" title="Haz clic para cambiar tu foto de perfil">
+    <div class="profile-avatar-lg" aria-hidden="true" id="profile-avatar-display">
+      {% if u_avatar %}
+        <img src="{{ u_avatar }}" alt="{{ u_name }}" id="profile-avatar-img" />
+      {% else %}
+        <span id="profile-avatar-initial">{{ u_name[0] | upper if u_name else '?' }}</span>
+      {% endif %}
+    </div>
+    <div class="profile-avatar-overlay">
+      <span style="font-size:20px;">📷</span>
+      <span style="font-weight:600;">Cambiar</span>
+    </div>
+    <form id="avatar-form" action="{{ url_for('profile_photo_upload') }}" method="POST" enctype="multipart/form-data" style="display:none;">
+      <input type="file" id="avatar-file-input" name="avatar" accept="image/png, image/jpeg, image/jpg, image/webp" onchange="document.getElementById('avatar-form').submit();" />
+    </form>
   </div>
+  {% else %}
+  <div class="profile-avatar-lg" aria-hidden="true">
+    {% if u_avatar %}
+      <img src="{{ u_avatar }}" alt="{{ u_name }}" />
+    {% else %}
+      {{ u_name[0] | upper if u_name else '?' }}
+    {% endif %}
+  </div>
+  {% endif %}
 
   <!-- Info -->
   <div>
     <div style="display:flex;align-items:center;gap:var(--space-3);flex-wrap:wrap;margin-bottom:var(--space-1);">
-      <h1 class="profile-name">{{ usuario.nombre }}</h1>
-      {% if usuario.rol %}
-        <span class="badge {{ 'badge-amber' if usuario.rol == 'admin' else 'badge-primary' }}">
-          {{ usuario.rol | title }}
+      <h1 class="profile-name">{{ u_name }}</h1>
+      {% if u_role %}
+        <span class="badge {{ 'badge-amber' if u_role == 'admin' else 'badge-primary' }}">
+          {{ u_role | title }}
         </span>
       {% endif %}
-      {% if usuario.tipo == 'IA' %}
+      {% if u.type == 'AI' or u.tipo == 'IA' or (u.author_type and u.author_type.value == 'llm') %}
         <span class="badge badge-ai">AutorIA</span>
       {% endif %}
     </div>
-    <p class="profile-email">{{ usuario.email }}</p>
+    <p class="profile-email">{{ u.email }}</p>
     <p style="font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--space-1);">
-      Miembro desde {{ usuario.fecha_registro.strftime('%B %Y') if usuario.fecha_registro else 'desconocido' }}
+      Miembro desde {{ u_registered.strftime('%B %Y') if (u_registered and u_registered.strftime is defined) else 'recientemente' }}
     </p>
 
     <!-- Stats grid -->
     <div class="profile-stats-grid" style="margin-top:var(--space-4);">
       <div class="profile-stat" id="stat-preguntas">
-        <div class="profile-stat-value" data-count-up="{{ usuario.preguntas_count | default(0) }}">{{ usuario.preguntas_count | default(0) }}</div>
+        <div class="profile-stat-value" data-count-up="{{ u_q_count }}">{{ u_q_count }}</div>
         <div class="profile-stat-label">Preguntas</div>
       </div>
       <div class="profile-stat" id="stat-respuestas">
-        <div class="profile-stat-value" data-count-up="{{ usuario.respuestas_count | default(0) }}">{{ usuario.respuestas_count | default(0) }}</div>
+        <div class="profile-stat-value" data-count-up="{{ u_a_count }}">{{ u_a_count }}</div>
         <div class="profile-stat-label">Respuestas</div>
       </div>
       <div class="profile-stat" id="stat-reputacion">
-        <div class="profile-stat-value" data-count-up="{{ usuario.reputacion | default(0) }}">{{ usuario.reputacion | default(0) }}</div>
+        <div class="profile-stat-value" data-count-up="{{ u_rep }}">{{ u_rep }}</div>
         <div class="profile-stat-label">Reputación</div>
       </div>
     </div>
   </div>
 
-  <!-- Edit button (own profile) -->
-  {% if current_user and current_user.id == usuario.id %}
-  <div>
-    <a href="{{ url_for('profile_edit') }}" class="btn btn-secondary" id="btn-edit-profile">
-      Editar perfil
-    </a>
+  <!-- Botón de cambiar foto para tu propio perfil -->
+  {% if current_user and current_user.id == u.id %}
+  <div style="display:flex;flex-direction:column;gap:var(--space-2);">
+    <button type="button" class="btn btn-secondary" onclick="document.getElementById('avatar-file-input').click();" id="btn-change-avatar">
+      📷 Cambiar foto
+    </button>
   </div>
   {% endif %}
 </section>
 
 <!-- ── REPUTACIÓN BAR ── -->
-{% if usuario.reputacion is defined %}
+{% if u_rep is defined %}
 <div class="form-card" style="margin-bottom:var(--space-6);" id="rep-card">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-4);">
     <h2 style="font-size:var(--text-base);font-weight:700;">Reputación</h2>
-    <span class="badge badge-amber">{{ usuario.reputacion | default(0) }} puntos</span>
+    <span class="badge badge-amber">{{ u_rep }} puntos</span>
   </div>
 
   {% set niveles = [
@@ -74,7 +109,7 @@
   ] %}
 
   {% for nombre, min_rep, max_rep in niveles %}
-    {% set progress = [(((usuario.reputacion | default(0)) - min_rep) / (max_rep - min_rep)) * 100, 0] | max %}
+    {% set progress = [(((u_rep | default(0)) - min_rep) / (max_rep - min_rep)) * 100, 0] | max %}
     {% set progress = [progress, 100] | min %}
     <div class="rep-bar-container">
       <div class="rep-bar-label">
@@ -93,27 +128,27 @@
 <div data-tabs id="profile-tabs">
   <div class="tabs" role="tablist" aria-label="Actividad del usuario">
     <button class="tab-btn active" data-tab-btn="preguntas" id="tab-preguntas" role="tab" aria-selected="true">
-      Preguntas ({{ preguntas | length }})
+      Preguntas ({{ q_list | length }})
     </button>
     <button class="tab-btn" data-tab-btn="respuestas" id="tab-respuestas" role="tab" aria-selected="false">
-      Respuestas ({{ respuestas | length }})
+      Respuestas ({{ a_list | length }})
     </button>
     <button class="tab-btn" data-tab-btn="votos" id="tab-votos" role="tab" aria-selected="false">
-      Votos
+      Votos ({{ v_list | length }})
     </button>
   </div>
 
   <!-- PREGUNTAS TAB -->
   <div data-tab-content="preguntas" class="tab-content active" role="tabpanel" aria-labelledby="tab-preguntas" id="panel-preguntas">
-    {% if preguntas %}
-      {% for q in preguntas %}
+    {% if q_list %}
+      {% for q in q_list %}
         {% include 'components/question_card.html' %}
       {% endfor %}
     {% else %}
       <div class="empty-state" style="padding:var(--space-10) 0;">
         <p class="empty-state-title">Sin preguntas todavía</p>
-        <p class="empty-state-desc">{{ usuario.nombre }} no ha hecho preguntas aún.</p>
-        {% if current_user and current_user.id == usuario.id %}
+        <p class="empty-state-desc">{{ u_name }} no ha hecho preguntas aún.</p>
+        {% if current_user and current_user.id == u.id %}
           <a href="{{ url_for('question_new') }}" class="btn btn-primary mt-4" id="btn-first-q-profile">Hacer mi primera pregunta</a>
         {% endif %}
       </div>
@@ -122,45 +157,53 @@
 
   <!-- RESPUESTAS TAB -->
   <div data-tab-content="respuestas" class="tab-content" role="tabpanel" aria-labelledby="tab-respuestas" id="panel-respuestas">
-    {% if respuestas %}
-      {% for r in respuestas %}
-      <div class="answer-card {{ 'accepted-answer' if r.es_aceptada }} {{ 'ai-answer' if r.autor.tipo == 'IA' }}" id="profile-a-{{ r.id }}" style="grid-template-columns:1fr;">
+    {% if a_list %}
+      {% for r in a_list %}
+      {% set r_accepted = r.accepted if r.accepted is defined else r.es_aceptada %}
+      {% set r_score = r.score if r.score is defined else (r.puntuacion | default(0)) %}
+      {% set r_body = r.body or r.cuerpo %}
+      {% set r_dt = r.post_date or r.fecha_publicacion %}
+      {% set r_q = r.question or r.pregunta %}
+      {% set r_q_title = r_q.title or r_q.titulo if r_q else 'Pregunta' %}
+      {% set r_q_id = r_q.id if r_q else 0 %}
+      <div class="answer-card {{ 'accepted-answer' if r_accepted }}" id="profile-a-{{ r.id }}" style="grid-template-columns:1fr;">
         <div class="answer-body">
           <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-3);flex-wrap:wrap;">
-            {% if r.es_aceptada %}<span class="badge badge-accepted">Aceptada</span>{% endif %}
-            {% if r.autor.tipo == 'IA' %}<span class="badge badge-ai">IA</span>{% endif %}
-            <span class="badge badge-primary">{{ r.puntuacion }} votos</span>
+            {% if r_accepted %}<span class="badge badge-accepted">Aceptada</span>{% endif %}
+            <span class="badge badge-primary">{{ r_score }} votos</span>
           </div>
 
           <div class="answer-content" style="-webkit-line-clamp:3;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;">
-            {{ r.cuerpo | striptags | truncate(240) }}
+            {{ r_body | striptags | truncate(240) }}
           </div>
 
           <div style="margin-top:var(--space-3);font-size:var(--text-sm);color:var(--text-muted);">
             En respuesta a:
-            <a href="{{ url_for('question_detail', question_id=r.pregunta.id) }}#answer-{{ r.id }}"
+            <a href="{{ url_for('question_detail', question_id=r_q_id) }}#answer-{{ r.id }}"
                id="profile-a-link-{{ r.id }}">
-              {{ r.pregunta.titulo | truncate(80) }}
+              {{ r_q_title | truncate(80) }}
             </a>
           </div>
 
+          {% if r_dt %}
           <div style="font-size:var(--text-xs);color:var(--text-muted);margin-top:var(--space-2);">
-            <time datetime="{{ r.fecha_publicacion.isoformat() }}">{{ r.fecha_publicacion.strftime('%d %b %Y') }}</time>
+            <time datetime="{{ r_dt.isoformat() if r_dt.isoformat is defined else r_dt }}">{{ r_dt.strftime('%d %b %Y') if r_dt.strftime is defined else r_dt }}</time>
           </div>
+          {% endif %}
         </div>
       </div>
       {% endfor %}
     {% else %}
       <div class="empty-state" style="padding:var(--space-10) 0;">
         <p class="empty-state-title">Sin respuestas todavía</p>
-        <p class="empty-state-desc">{{ usuario.nombre }} no ha respondido preguntas aún.</p>
+        <p class="empty-state-desc">{{ u_name }} no ha respondido preguntas aún.</p>
       </div>
     {% endif %}
   </div>
 
   <!-- VOTOS TAB -->
   <div data-tab-content="votos" class="tab-content" role="tabpanel" aria-labelledby="tab-votos" id="panel-votos">
-    {% if votos %}
+    {% if v_list %}
     <div class="table-wrapper">
       <div class="table-header">
         <span class="table-title">Historial de votos emitidos</span>
@@ -175,23 +218,29 @@
           </tr>
         </thead>
         <tbody>
-          {% for v in votos %}
+          {% for v in v_list %}
+          {% set post_obj = v.post or v.publicacion %}
+          {% set v_is_pos = v.is_positive if v.is_positive is defined else v.es_positivo %}
+          {% set v_date = v.date or v.fecha %}
           <tr id="vote-row-{{ v.id }}">
             <td>
-              <a href="{{ url_for('question_detail', question_id=v.publicacion.pregunta_id) }}">
-                {{ v.publicacion.titulo | default(v.publicacion.cuerpo | truncate(60)) }}
+              <a href="{{ url_for('question_detail', question_id=post_obj.question_id if post_obj.question_id is defined else (post_obj.pregunta_id | default(post_obj.id))) }}">
+                {{ (post_obj.title or post_obj.titulo) if (post_obj.title is defined or post_obj.titulo is defined) else (post_obj.body or post_obj.cuerpo | truncate(60)) }}
               </a>
             </td>
             <td>
-              <span class="badge {{ 'badge-cyan' if v.publicacion.tipo == 'pregunta' else 'badge-primary' }}">
-                {{ 'Pregunta' if v.publicacion.tipo == 'pregunta' else 'Respuesta' }}
+              {% set p_type = post_obj.type or post_obj.tipo or 'post' %}
+              <span class="badge {{ 'badge-cyan' if p_type in ['question', 'pregunta'] else 'badge-primary' }}">
+                {{ 'Pregunta' if p_type in ['question', 'pregunta'] else 'Respuesta' }}
               </span>
             </td>
             <td>
-              <span style="font-weight:600;color:{{ 'var(--green)' if v.es_positivo else 'var(--red-light)' }};">{{ '+1' if v.es_positivo else '-1' }}</span>
+              <span style="font-weight:600;color:{{ 'var(--green)' if v_is_pos else 'var(--red-light)' }};">{{ '+1' if v_is_pos else '-1' }}</span>
             </td>
             <td>
-              <time datetime="{{ v.fecha.isoformat() }}">{{ v.fecha.strftime('%d %b %Y') }}</time>
+              {% if v_date %}
+              <time datetime="{{ v_date.isoformat() if v_date.isoformat is defined else v_date }}">{{ v_date.strftime('%d %b %Y') if v_date.strftime is defined else v_date }}</time>
+              {% endif %}
             </td>
           </tr>
           {% endfor %}
@@ -201,7 +250,7 @@
     {% else %}
       <div class="empty-state" style="padding:var(--space-10) 0;">
         <p class="empty-state-title">Sin votos registrados</p>
-        <p class="empty-state-desc">{{ usuario.nombre }} no ha emitido votos todavía.</p>
+        <p class="empty-state-desc">{{ u_name }} no ha emitido votos todavía.</p>
       </div>
     {% endif %}
   </div>

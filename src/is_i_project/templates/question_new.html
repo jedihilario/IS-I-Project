@@ -26,14 +26,14 @@
         <input
           type="text"
           id="q-title"
-          name="titulo"
+          name="title"
           placeholder="Ej: ¿Cómo implementar el patrón Strategy en Python?"
           required
           aria-required="true"
           maxlength="150"
           data-maxlength="150"
           data-counter="title-counter"
-          value="{{ request.form.titulo | default('') }}"
+          value="{{ request.form.title | default(request.form.titulo | default('')) }}"
         />
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <span class="form-hint">Sé específico. Imaginá que le estás preguntando a un experto.</span>
@@ -59,7 +59,7 @@
         <div id="write-area" role="tabpanel">
           <textarea
             id="question-body"
-            name="cuerpo"
+            name="body"
             rows="14"
             placeholder="Describí el problema con detalle:
 - ¿Qué intentás hacer?
@@ -70,7 +70,7 @@
             aria-required="true"
             data-maxlength="20000"
             data-counter="body-counter"
-          >{{ request.form.cuerpo | default('') }}</textarea>
+          >{{ request.form.body | default(request.form.cuerpo | default('')) }}</textarea>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-top:var(--space-1);">
             <span class="form-hint">Podés usar Markdown: **negrita**, `código`, ### títulos</span>
             <span id="body-counter" style="font-size:var(--text-xs);color:var(--text-muted);">0 / 20000</span>
@@ -93,14 +93,16 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-5);">
 
         <!-- Categoría -->
+        {% set cat_list = categories if categories is defined else categorias %}
         <div class="form-group" style="margin-bottom:0;">
           <label for="q-categoria" class="form-label">Categoría</label>
-          <select id="q-categoria" name="categoria">
+          <select id="q-categoria" name="category">
             <option value="">— Sin categoría —</option>
-            {% if categorias %}
-              {% for cat in categorias %}
-              <option value="{{ cat.nombre }}" {{ 'selected' if request.form.categoria == cat.nombre }}>
-                {{ cat.nombre }}
+            {% if cat_list %}
+              {% for cat in cat_list %}
+              {% set cat_name = cat.name if cat.name is defined else cat.nombre %}
+              <option value="{{ cat_name }}" {{ 'selected' if (request.form.category == cat_name or request.form.categoria == cat_name) }}>
+                {{ cat_name }}
               </option>
               {% endfor %}
             {% else %}
@@ -143,9 +145,9 @@
           </span>
         </div>
         <label class="sr-only" for="use-ai">Activar asistencia de IA</label>
-        <input type="checkbox" id="use-ai" name="solicitar_ia" value="1"
+        <input type="checkbox" id="use-ai" name="request_ai" value="1"
                style="width:20px;height:20px;cursor:pointer;accent-color:var(--primary);"
-               {{ 'checked' if request.form.solicitar_ia }}
+               {{ 'checked' if (request.form.request_ai or request.form.solicitar_ia) }}
         />
       </div>
 

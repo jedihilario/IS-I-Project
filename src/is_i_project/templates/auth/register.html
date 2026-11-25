@@ -58,14 +58,14 @@
           <input
             type="text"
             id="reg-nombre"
-            name="nombre"
+            name="name"
             placeholder="juanito_dev"
             required
             aria-required="true"
             autocomplete="username"
             minlength="3"
             maxlength="40"
-            value="{{ request.form.nombre | default('') }}"
+            value="{{ request.form.name | default(request.form.nombre | default('')) }}"
           />
           <span class="form-hint">Entre 3 y 40 caracteres. Solo letras, números y guiones.</span>
           <span class="form-error" id="reg-nombre-error" role="alert"></span>

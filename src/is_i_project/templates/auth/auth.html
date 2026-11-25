@@ -82,10 +82,8 @@
             </div>
 
             <div class="form-group">
-              <label for="login-password" class="form-label" style="display:flex;justify-content:space-between;">
+              <label for="login-password" class="form-label">
                 <span>Contraseña</span>
-                <a href="{{ url_for('forgot_password') }}" style="font-weight:400;font-size:var(--text-xs);"
-                  id="link-forgot">¿Olvidaste tu contraseña?</a>
               </label>
               <div style="position:relative;">
                 <input type="password" id="login-password" name="password" placeholder="••••••••" required
@@ -132,8 +130,8 @@
               <label for="reg-nombre" class="form-label">
                 Nombre de usuario <span aria-hidden="true" style="color:var(--red);">*</span>
               </label>
-              <input type="text" id="reg-nombre" name="nombre" placeholder="juanito_dev" required aria-required="true"
-                autocomplete="username" minlength="3" maxlength="40" value="{{ request.form.nombre | default('') }}" />
+              <input type="text" id="reg-nombre" name="name" placeholder="juanito_dev" required aria-required="true"
+                autocomplete="username" minlength="3" maxlength="40" value="{{ request.form.name | default(request.form.nombre | default('')) }}" />
               <span class="form-hint">Entre 3 y 40 caracteres. Solo letras, números y guiones.</span>
               <span class="form-error" id="reg-nombre-error" role="alert"></span>
             </div>
@@ -151,7 +149,7 @@
             <!-- Rol (Admin / Usuario general según los requerimientos) -->
             <div class="form-group">
               <label for="reg-rol" class="form-label">Tipo de cuenta</label>
-              <select id="reg-rol" name="rol">
+              <select id="reg-rol" name="role">
                 <option value="usuario" selected>Usuario general</option>
                 <option value="admin">Administrador</option>
               </select>

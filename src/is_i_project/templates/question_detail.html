@@ -1,7 +1,19 @@
 {% extends "base.html" %}
 
-{% block title %}{{ pregunta.titulo }} — QAI{% endblock %}
-{% block meta_description %}{{ pregunta.cuerpo | truncate(160) }}{% endblock %}
+{% set q = question or pregunta %}
+{% set q_title = q.title or q.titulo %}
+{% set q_body = q.body or q.cuerpo %}
+{% set q_cat = q.category.name if (q.category is mapping or q.category.name is defined) else (q.category or q.categoria) %}
+{% set q_author = q.author or q.autor %}
+{% set q_author_name = q_author.name if (q_author and q_author.name is defined) else (q_author.nombre if (q_author and q_author.nombre is defined) else 'Anónimo') %}
+{% set q_author_rep = q_author.reputation if (q_author and q_author.reputation is defined) else (q_author.reputacion | default(0)) %}
+{% set q_score = q.score if q.score is defined else (q.puntuacion | default(0)) %}
+{% set q_post_date = q.post_date or q.fecha_publicacion %}
+{% set ans_list = answers if answers is defined else (respuestas | default([])) %}
+{% set sim_list = similar_questions if similar_questions is defined else (preguntas_similares | default([])) %}
+
+{% block title %}{{ q_title }} — QAI{% endblock %}
+{% block meta_description %}{{ q_body | truncate(160) }}{% endblock %}
 
 {% block content %}
 <div class="content-grid">
@@ -13,29 +25,32 @@
     <nav aria-label="Miga de pan" style="font-size:var(--text-sm);color:var(--text-muted);margin-bottom:var(--space-4);">
       <a href="{{ url_for('home') }}">Inicio</a>
       <span aria-hidden="true"> › </span>
-      {% if pregunta.categoria %}
-        <a href="{{ url_for('home') }}?categoria={{ pregunta.categoria }}">{{ pregunta.categoria }}</a>
+      {% if q_cat %}
+        <a href="{{ url_for('home') }}?categoria={{ q_cat }}">{{ q_cat }}</a>
         <span aria-hidden="true"> › </span>
       {% endif %}
-      <span style="color:var(--text-secondary);">{{ pregunta.titulo | truncate(50) }}</span>
+      <span style="color:var(--text-secondary);">{{ q_title | truncate(50) }}</span>
     </nav>
 
     <!-- ── PREGUNTA ── -->
-    <article class="question-detail-header" id="question-{{ pregunta.id }}">
-      <h1 class="question-detail-title">{{ pregunta.titulo }}</h1>
+    <article class="question-detail-header" id="question-{{ q.id }}">
+      <h1 class="question-detail-title">{{ q_title }}</h1>
 
       <div class="question-detail-meta">
-        <span class="meta-item">Publicado el {{ pregunta.fecha_publicacion.strftime('%d de %B de %Y, %H:%M') }}</span>
-        <span class="meta-item">{{ pregunta.vistas | default(0) }} vistas</span>
-        <span class="meta-item">{{ respuestas | length }} respuesta{{ 's' if respuestas | length != 1 }}</span>
+        {% if q_post_date %}
+        <span class="meta-item">Publicado el {{ q_post_date.strftime('%d de %B de %Y, %H:%M') if q_post_date.strftime is defined else q_post_date }}</span>
+        {% endif %}
+        <span class="meta-item">{{ q.views | default(q.vistas | default(0)) }} vistas</span>
+        <span class="meta-item">{{ ans_list | length }} respuesta{{ 's' if ans_list | length != 1 }}</span>
       </div>
 
       <div class="tags" style="margin-bottom:var(--space-4);">
-        {% if pregunta.categoria %}
-          <span class="tag tag-cyan">{{ pregunta.categoria }}</span>
+        {% if q_cat %}
+          <span class="tag tag-cyan">{{ q_cat }}</span>
         {% endif %}
-        {% for tag in pregunta.tags %}
-          <a href="{{ url_for('home') }}?tag={{ tag }}" class="tag">{{ tag }}</a>
+        {% for tag in q.tags %}
+          {% set tag_name = tag.name if tag.name is defined else tag %}
+          <a href="{{ url_for('home') }}?tag={{ tag_name }}" class="tag">{{ tag_name }}</a>
         {% endfor %}
       </div>
 
@@ -44,7 +59,7 @@
         <!-- Vote controls -->
         <div
           class="vote-controls"
-          data-votable="{{ pregunta.id }}"
+          data-votable="{{ q.id }}"
           data-type="question"
           aria-label="Votar pregunta"
         >
@@ -53,38 +68,38 @@
             data-vote-btn="up"
             aria-label="Voto positivo"
             title="Útil"
-            id="vote-up-q-{{ pregunta.id }}"
+            id="vote-up-q-{{ q.id }}"
           >▲</button>
-          <span class="vote-score" data-vote-score aria-live="polite">{{ pregunta.puntuacion }}</span>
+          <span class="vote-score" data-vote-score aria-live="polite">{{ q_score }}</span>
           <button
             class="vote-btn {{ 'downvoted' if user_vote == -1 }}"
             data-vote-btn="down"
             aria-label="Voto negativo"
             title="No útil"
-            id="vote-down-q-{{ pregunta.id }}"
+            id="vote-down-q-{{ q.id }}"
           >▼</button>
         </div>
 
         <div>
           <div class="question-detail-body">
-            {{ pregunta.cuerpo | safe }}
+            {{ q_body | safe }}
           </div>
 
           <div class="answer-footer">
             <div class="author-info">
               <div class="author-avatar" aria-hidden="true" style="width:32px;height:32px;font-size:13px;">
-                {{ pregunta.autor.nombre[0] | upper }}
+                {{ q_author_name[0] | upper if q_author_name else '?' }}
               </div>
               <div>
-                <a href="{{ url_for('profile', user_id=pregunta.autor.id) }}" class="author-name">{{ pregunta.autor.nombre }}</a>
-                <div style="font-size:var(--text-xs);color:var(--text-muted);">{{ pregunta.autor.reputacion | default(0) }} reputación</div>
+                <a href="{{ url_for('profile', user_id=q_author.id if q_author else 0) }}" class="author-name">{{ q_author_name }}</a>
+                <div style="font-size:var(--text-xs);color:var(--text-muted);">{{ q_author_rep }} reputación</div>
               </div>
             </div>
-            {% if current_user and current_user.id == pregunta.autor.id %}
+            {% if current_user and q_author and current_user.id == q_author.id %}
               <div class="answer-actions">
-                <a href="{{ url_for('question_edit', question_id=pregunta.id) }}" class="action-btn" id="btn-edit-q">Editar</a>
+                <a href="{{ url_for('question_edit', question_id=q.id) }}" class="action-btn" id="btn-edit-q">Editar</a>
                 <button class="action-btn btn-danger" id="btn-delete-q"
-                        onclick="if(confirm('¿Eliminar esta pregunta?')) window.location.href='{{ url_for('question_delete', question_id=pregunta.id) }}'">
+                        onclick="if(confirm('¿Eliminar esta pregunta?')) window.location.href='{{ url_for('question_delete', question_id=q.id) }}'">
                   Eliminar
                 </button>
               </div>
@@ -97,11 +112,11 @@
     <!-- ── RESPUESTAS ── -->
     <section aria-label="Respuestas" id="answers-section">
       <div class="section-divider">
-        {{ respuestas | length }} Respuesta{{ 's' if respuestas | length != 1 }}
+        {{ ans_list | length }} Respuesta{{ 's' if ans_list | length != 1 }}
       </div>
 
-      {% if respuestas %}
-        {% for r in respuestas %}
+      {% if ans_list %}
+        {% for r in ans_list %}
           {% include 'components/answer_card.html' %}
         {% endfor %}
 
@@ -118,7 +133,7 @@
     <section aria-label="Escribir respuesta" id="answer-form-section" style="margin-top:var(--space-8);">
       <div class="section-divider">Tu respuesta</div>
 
-      <form method="POST" action="{{ url_for('answer_create', question_id=pregunta.id) }}" class="form-card" data-validate id="answer-form" novalidate>
+      <form method="POST" action="{{ url_for('answer_create', question_id=q.id) }}" class="form-card" data-validate id="answer-form" novalidate>
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 
         <!-- Write / Preview tabs -->
@@ -132,7 +147,7 @@
             <label for="question-body" class="form-label">Respuesta <span aria-hidden="true" style="color:var(--red);">*</span></label>
             <textarea
               id="question-body"
-              name="cuerpo"
+              name="body"
               rows="10"
               placeholder="Escribí tu respuesta aquí. Podés usar Markdown: **negrita**, `código`, etc."
               required
@@ -182,16 +197,19 @@
     </div>
 
     <!-- Similar questions -->
-    {% if preguntas_similares %}
+    {% if sim_list %}
     <div class="widget" id="widget-similar">
       <h2 class="widget-title">Relacionadas</h2>
-      {% for pq in preguntas_similares %}
+      {% for pq in sim_list %}
+      {% set pq_title = pq.title or pq.titulo %}
+      {% set pq_score = pq.score if pq.score is defined else (pq.votes if pq.votes is defined else pq.votos) %}
+      {% set pq_ans = pq.answers_count if pq.answers_count is defined else (pq.respuestas_count | default(0)) %}
       <div class="stat-row" style="display:block;padding:var(--space-2) 0;">
         <a href="{{ url_for('question_detail', question_id=pq.id) }}"
            style="font-size:var(--text-sm);color:var(--text-secondary);text-decoration:none;line-height:1.4;display:block;"
            id="similar-{{ pq.id }}"
-        >{{ pq.titulo | truncate(80) }}</a>
-        <span style="font-size:var(--text-xs);color:var(--text-muted);">{{ pq.votos }} votos · {{ pq.respuestas_count }} resp.</span>
+        >{{ pq_title | truncate(80) }}</a>
+        <span style="font-size:var(--text-xs);color:var(--text-muted);">{{ pq_score }} votos · {{ pq_ans }} resp.</span>
       </div>
       {% endfor %}
     </div>
@@ -202,29 +220,30 @@
       <h2 class="widget-title">Estadísticas</h2>
       <div class="stat-row">
         <span class="stat-row-label">Preguntado</span>
-        <span class="stat-row-value">{{ pregunta.fecha_publicacion.strftime('%d %b %Y') }}</span>
+        <span class="stat-row-value">{{ q_post_date.strftime('%d %b %Y') if (q_post_date and q_post_date.strftime is defined) else (q_post_date | default('-')) }}</span>
       </div>
       <div class="stat-row">
         <span class="stat-row-label">Vistas</span>
-        <span class="stat-row-value">{{ pregunta.vistas | default(0) }}</span>
+        <span class="stat-row-value">{{ q.views | default(q.vistas | default(0)) }}</span>
       </div>
       <div class="stat-row">
         <span class="stat-row-label">Votos</span>
-        <span class="stat-row-value">{{ pregunta.puntuacion }}</span>
+        <span class="stat-row-value">{{ q_score }}</span>
       </div>
       <div class="stat-row">
         <span class="stat-row-label">Respuestas</span>
-        <span class="stat-row-value">{{ respuestas | length }}</span>
+        <span class="stat-row-value">{{ ans_list | length }}</span>
       </div>
     </div>
 
     <!-- Tags -->
-    {% if pregunta.tags %}
+    {% if q.tags %}
     <div class="widget" id="widget-q-tags">
       <h2 class="widget-title">Tags</h2>
       <div class="tags">
-        {% for tag in pregunta.tags %}
-          <a href="{{ url_for('home') }}?tag={{ tag }}" class="tag">{{ tag }}</a>
+        {% for tag in q.tags %}
+          {% set tag_name = tag.name if tag.name is defined else tag %}
+          <a href="{{ url_for('home') }}?tag={{ tag_name }}" class="tag">{{ tag_name }}</a>
         {% endfor %}
       </div>
     </div>

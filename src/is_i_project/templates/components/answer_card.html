@@ -1,82 +1,92 @@
 <!-- ───────────── COMPONENTE: ANSWER CARD ───────────── -->
-<article
-  class="answer-card {{ 'accepted-answer' if r.es_aceptada }} {{ 'ai-answer' if r.autor.tipo == 'IA' }}"
-  id="answer-{{ r.id }}"
-  aria-label="Respuesta de {{ r.autor.getNombreVisible() }}"
->
-  <!-- Controles de Voto -->
-  <div
-    class="vote-controls"
-    data-votable="{{ r.id }}"
-    data-type="answer"
-    aria-label="Votar respuesta"
-  >
-    <button
-      class="vote-btn {{ 'upvoted' if r.user_vote == 1 }}"
-      data-vote-btn="up"
-      aria-label="Voto positivo"
-      id="vote-up-a-{{ r.id }}"
-    >▲</button>
-    <span class="vote-score" data-vote-score aria-live="polite">{{ r.puntuacion }}</span>
-    <button
-      class="vote-btn {{ 'downvoted' if r.user_vote == -1 }}"
-      data-vote-btn="down"
-      aria-label="Voto negativo"
-      id="vote-down-a-{{ r.id }}"
-    >▼</button>
+{% set author_obj = r.author or r.autor %}
+{% set is_ai = (author_obj.author_type.value == 'llm' if (author_obj and author_obj.author_type and
+author_obj.author_type.value is defined) else (author_obj.author_type == 'LLM' or author_obj.tipo == 'IA' or
+author_obj.type == 'AI')) if author_obj else false %}
+{% set author_name = author_obj.name if (author_obj and author_obj.name is defined) else (author_obj.getNombreVisible()
+if (author_obj and author_obj.getNombreVisible is defined) else (author_obj.nombre if (author_obj and author_obj.nombre
+is defined) else 'Anónimo')) %}
+{% set author_avatar = author_obj.avatar_url if (author_obj and author_obj.avatar_url is defined) else (author_obj.foto
+if (author_obj and author_obj.foto is defined) else none) %}
+{% set is_accepted = r.accepted if r.accepted is defined else r.es_aceptada %}
+{% set resp_score = r.score if r.score is defined else (r.puntuacion | default(0)) %}
+{% set post_dt = r.post_date or r.fecha_publicacion %}
+{% set q_obj = question or pregunta %}
+{% set q_author = q_obj.author or q_obj.autor if q_obj else None %}
+{% set q_author_id = q_author.id if q_author else None %}
+{% set u_role = current_user.role or current_user.rol if current_user else None %}
 
-    {% if r.es_aceptada %}
-      <span class="badge badge-accepted" title="Respuesta aceptada" aria-label="Respuesta aceptada">✓</span>
+<article class="answer-card {{ 'accepted-answer' if is_accepted }} {{ 'ai-answer' if is_ai }}" id="answer-{{ r.id }}"
+  aria-label="Respuesta de {{ author_name }}">
+  <!-- Controles de Voto -->
+  <div class="vote-controls" data-votable="{{ r.id }}" data-type="answer" aria-label="Votar respuesta">
+    <button class="vote-btn {{ 'upvoted' if r.user_vote == 1 }}" data-vote-btn="up" aria-label="Voto positivo"
+      id="vote-up-a-{{ r.id }}">▲</button>
+    <span class="vote-score" data-vote-score aria-live="polite">{{ resp_score }}</span>
+    <button class="vote-btn {{ 'downvoted' if r.user_vote == -1 }}" data-vote-btn="down" aria-label="Voto negativo"
+      id="vote-down-a-{{ r.id }}">▼</button>
+
+    {% if is_accepted %}
+    <span class="badge badge-accepted" title="Respuesta aceptada" aria-label="Respuesta aceptada">✓</span>
     {% endif %}
   </div>
 
   <!-- Cuerpo de la Respuesta -->
   <div class="answer-body">
     <!-- Banner distintivo si fue generada por IA -->
-    {% if r.autor.tipo == 'IA' %}
+    {% if is_ai %}
     <div class="badge badge-ai" style="margin-bottom:var(--space-4);display:inline-flex;">
-      Respuesta generada por IA · {{ r.autor.nombreModelo | default('Modelo IA') }}
+      Respuesta generada por IA · {{ author_obj.modelName if (author_obj and author_obj.modelName is defined) else
+      (author_obj.nombreModelo | default('Modelo IA')) }}
     </div>
     {% endif %}
 
     <div class="answer-content">
-      {{ r.cuerpo | safe }}
+      {{ (r.body or r.cuerpo) | safe }}
     </div>
 
     <div class="answer-footer">
       <div class="author-info">
-        <div class="author-avatar {{ 'ai-avatar' if r.autor.tipo == 'IA' }}" aria-hidden="true" style="width:32px;height:32px;font-size:12px;">
-          {{ 'IA' if r.autor.tipo == 'IA' else r.autor.getNombreVisible()[0] | upper }}
+        <div class="author-avatar {{ 'ai-avatar' if is_ai }}" aria-hidden="true"
+          style="width:32px;height:32px;font-size:12px;">
+          {% if is_ai %}
+          {{ 'IA' }}
+          {% elif author_avatar %}
+          <img src="{{ author_avatar }}" alt="{{ author_name }}" />
+          {% else %}
+          {{ author_name[0] | upper if author_name else '?' }}
+          {% endif %}
         </div>
         <div>
-          {% if r.autor.tipo == 'IA' %}
-            <span class="author-name">{{ r.autor.getNombreVisible() }}</span>
-            <div style="font-size:var(--text-xs);color:var(--text-muted);">Asistente IA</div>
+          {% if is_ai %}
+          <span class="author-name">{{ author_name }}</span>
+          <div style="font-size:var(--text-xs);color:var(--text-muted);">Asistente IA</div>
           {% else %}
-            <a href="{{ url_for('profile', user_id=r.autor.id) }}" class="author-name">{{ r.autor.getNombreVisible() }}</a>
-            <div style="font-size:var(--text-xs);color:var(--text-muted);">
-              {{ r.autor.reputacion | default(0) }} reputación ·
-              <time datetime="{{ r.fecha_publicacion.isoformat() }}">{{ r.fecha_publicacion.strftime('%d %b %Y') }}</time>
-            </div>
+          <a href="{{ url_for('profile', user_id=author_obj.id if author_obj else 0) }}" class="author-name">{{
+            author_name }}</a>
+          <div style="font-size:var(--text-xs);color:var(--text-muted);">
+            {{ author_obj.reputation if (author_obj and author_obj.reputation is defined) else (author_obj.reputacion |
+            default(0)) }} reputación ·
+            {% if post_dt %}
+            <time datetime="{{ post_dt.isoformat() if post_dt.isoformat is defined else post_dt }}">{{
+              post_dt.strftime('%d %b %Y') if post_dt.strftime is defined else post_dt }}</time>
+            {% endif %}
+          </div>
           {% endif %}
         </div>
       </div>
 
       <div class="answer-actions">
-        {% if current_user and current_user.id == pregunta.autor.id and not r.es_aceptada %}
-          <button
-            class="action-btn accept-btn"
-            data-accept-answer="{{ r.id }}"
-            id="accept-btn-{{ r.id }}"
-          >
-            Aceptar
-          </button>
+        {% if current_user and current_user.id == q_author_id and not is_accepted %}
+        <button class="action-btn accept-btn" data-accept-answer="{{ r.id }}" id="accept-btn-{{ r.id }}">
+          Aceptar
+        </button>
         {% endif %}
-        {% if current_user and (current_user.id == r.autor.id or current_user.rol == 'admin') %}
-          <button class="action-btn btn-danger" id="del-answer-{{ r.id }}"
-            onclick="if(confirm('¿Eliminar esta respuesta?')) window.location.href='{{ url_for('answer_delete', answer_id=r.id) }}'">
-            Eliminar
-          </button>
+        {% if current_user and (current_user.id == (author_obj.id if author_obj else 0) or u_role == 'admin') %}
+        <button class="action-btn btn-danger" id="del-answer-{{ r.id }}"
+          onclick="if(confirm('¿Eliminar esta respuesta?')) window.location.href='{{ url_for('answer_delete', answer_id=r.id) }}'">
+          Eliminar
+        </button>
         {% endif %}
       </div>
     </div>

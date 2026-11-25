@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import os
 from collections.abc import Callable
 from datetime import date, datetime
 from functools import wraps
 from typing import Any
 
-from flask import current_app, jsonify, request, session
+from flask import jsonify, request, session
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from is_i_project.extensions import db
@@ -48,15 +47,6 @@ def format_date_iso(value: date | datetime | None) -> str | None:
     if isinstance(value, datetime):
         return value.strftime("%Y-%m-%dT%H:%M:%SZ")
     return f"{value.isoformat()}T00:00:00Z"
-
-
-def get_avatar_url(user_id: int) -> str | None:
-    avatars_dir = os.path.join(current_app.root_path, "static", "uploads", "avatars")
-    for ext in (".png", ".jpg", ".jpeg", ".webp"):
-        filename = f"user_{user_id}{ext}"
-        if os.path.exists(os.path.join(avatars_dir, filename)):
-            return f"/static/uploads/avatars/{filename}"
-    return None
 
 
 def get_current_user_id() -> int | None:
@@ -153,7 +143,6 @@ def serialize_user_summary(user: User | None) -> dict[str, Any] | None:
         "id": user.id,
         "name": user.name,
         "reputation": calculate_user_reputation(user),
-        "avatar_url": get_avatar_url(user.id),
     }
 
 
@@ -164,7 +153,6 @@ def serialize_user_detail(user: User) -> dict[str, Any]:
         "email": user.email,
         "reputation": calculate_user_reputation(user),
         "registered_at": None,
-        "avatar_url": get_avatar_url(user.id),
         "questions_count": len(user.questions),
         "answers_count": len(user.responses),
     }
@@ -187,7 +175,6 @@ def serialize_answer_author(author: Author | None) -> dict[str, Any] | None:
             "name": author.name,
             "type": "User",
             "reputation": calculate_user_reputation(author),
-            "avatar_url": get_avatar_url(author.id),
         }
     return None
 

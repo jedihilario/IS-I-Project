@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% set cat_list = categories if categories is defined else categorias %}
+{% set tag_list = tags if tags is defined else [] %}
+
+{% block title %}Categorías y Tags — QAI{% endblock %}
+{% block meta_description %}Explorá todas las categorías y tags de preguntas en la plataforma QAI.{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Categorías y Tags</h1>
+    <p class="page-subtitle">Explorá el contenido por tema</p>
+  </div>
+  <a href="{{ url_for('question_new') }}" class="btn btn-primary" id="btn-ask-from-cat">Nueva pregunta</a>
+</div>
+
+<!-- ── CATEGORÍAS ── -->
+<section aria-labelledby="categories-heading" id="categories-section">
+  <div class="section-divider" id="categories-heading">Categorías</div>
+
+  <div class="category-grid" id="category-grid">
+
+    {% if cat_list %}
+      {% for cat in cat_list %}
+      {% set cat_name = cat.name if cat.name is defined else cat.nombre %}
+      {% set cat_desc = cat.description if cat.description is defined else (cat.descripcion | default('Preguntas relacionadas con ' + cat_name)) %}
+      {% set cat_answered = cat.answered_count if cat.answered_count is defined else cat.respondidas %}
+      <a
+        href="{{ url_for('home') }}?categoria={{ cat_name }}"
+        class="category-card"
+        id="cat-{{ loop.index }}"
+        aria-label="{{ cat_name }}, {{ cat.count }} preguntas"
+      >
+        <div class="category-name">{{ cat_name }}</div>
+        <div class="category-desc">{{ cat_desc }}</div>
+        <div class="category-count">
+          <span>{{ cat.count }} pregunta{{ 's' if cat.count != 1 }}</span>
+          {% if cat_answered is defined %}
+            <span style="margin-left:auto;color:var(--green);">{{ cat_answered }} resueltas</span>
+          {% endif %}
+        </div>
+      </a>
+      {% endfor %}
+    {% else %}
+      <!-- Default categories if none in DB -->
+      {% set default_cats = [
+        ('Backend', 'Flask, Django, APIs REST, bases de datos y más.'),
+        ('Frontend', 'HTML, CSS, JavaScript, frameworks y UI/UX.'),
+        ('Base de datos', 'SQL, NoSQL, ORM, migraciones y optimización.'),
+        ('Algoritmos', 'Estructuras de datos, complejidad y resolución de problemas.'),
+        ('DevOps', 'Docker, CI/CD, despliegue y monitoreo.'),
+        ('IA / ML', 'Machine learning, modelos, datasets y evaluación.'),
+        ('Seguridad', 'Autenticación, autorización, criptografía y vulnerabilidades.'),
+        ('General', 'Preguntas generales de programación y desarrollo.'),
+      ] %}
+      {% for nombre, desc in default_cats %}
+      <a href="{{ url_for('home') }}?categoria={{ nombre | lower | replace(' ', '-') }}"
+         class="category-card"
+         id="cat-default-{{ loop.index }}"
+         aria-label="{{ nombre }}">
+        <div class="category-name">{{ nombre }}</div>
+        <div class="category-desc">{{ desc }}</div>
+        <div class="category-count">
+          <span>0 preguntas</span>
+        </div>
+      </a>
+      {% endfor %}
+    {% endif %}
+
+  </div>
+</section>
+
+<!-- ── TAGS ── -->
+<section aria-labelledby="tags-heading" id="tags-section" style="margin-top:var(--space-8);">
+  <div class="section-divider" id="tags-heading">Tags populares</div>
+
+  <div style="margin-bottom:var(--space-5);">
+    <input
+      type="search"
+      id="tag-search"
+      placeholder="Buscar tag…"
+      style="max-width:360px;"
+      aria-label="Buscar tags"
+    />
+  </div>
+
+  <div class="tag-cloud" id="tag-cloud" role="list" aria-label="Nube de tags">
+    {% if tag_list %}
+      {% for tag in tag_list %}
+      {% set t_name = tag.name if tag.name is defined else tag.nombre %}
+      <a
+        href="{{ url_for('home') }}?tag={{ t_name }}"
+        class="tag-cloud-item"
+        id="tag-{{ t_name }}"
+        role="listitem"
+        style="font-size: {{ 0.75 + (tag.count / (tag_list | map(attribute='count') | max | default(1))) * 0.5 }}rem;"
+        aria-label="{{ t_name }}, {{ tag.count }} preguntas"
+      >
+        {{ t_name }}
+        <span class="tag-cloud-count">{{ tag.count }}</span>
+      </a>
+      {% endfor %}
+    {% else %}
+      <!-- Default tags -->
+      {% set default_tags = [
+        ('python', 42), ('flask', 38), ('javascript', 29), ('react', 24),
+        ('sql', 21), ('docker', 19), ('git', 17), ('css', 15),
+        ('html', 14), ('api-rest', 13), ('orm', 11), ('pytest', 9),
+      ] %}
+      {% for tag_name, count in default_tags %}
+      <a href="{{ url_for('home') }}?tag={{ tag_name }}" class="tag-cloud-item" id="tag-default-{{ tag_name }}" role="listitem">
+        {{ tag_name }}
+        <span class="tag-cloud-count">{{ count }}</span>
+      </a>
+      {% endfor %}
+    {% endif %}
+  </div>
+</section>
+
+{% endblock %}

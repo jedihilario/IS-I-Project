@@ -1,5 +1,8 @@
 {% extends "base.html" %}
 
+{% set cat_list = categories if categories is defined else categorias %}
+{% set tag_list = tags if tags is defined else [] %}
+
 {% block title %}Categorías y Tags — QAI{% endblock %}
 {% block meta_description %}Explorá todas las categorías y tags de preguntas en la plataforma QAI.{% endblock %}
 
@@ -19,20 +22,23 @@
 
   <div class="category-grid" id="category-grid">
 
-    {% if categorias %}
-      {% for cat in categorias %}
+    {% if cat_list %}
+      {% for cat in cat_list %}
+      {% set cat_name = cat.name if cat.name is defined else cat.nombre %}
+      {% set cat_desc = cat.description if cat.description is defined else (cat.descripcion | default('Preguntas relacionadas con ' + cat_name)) %}
+      {% set cat_answered = cat.answered_count if cat.answered_count is defined else cat.respondidas %}
       <a
-        href="{{ url_for('home') }}?categoria={{ cat.nombre }}"
+        href="{{ url_for('home') }}?categoria={{ cat_name }}"
         class="category-card"
         id="cat-{{ loop.index }}"
-        aria-label="{{ cat.nombre }}, {{ cat.count }} preguntas"
+        aria-label="{{ cat_name }}, {{ cat.count }} preguntas"
       >
-        <div class="category-name">{{ cat.nombre }}</div>
-        <div class="category-desc">{{ cat.descripcion | default('Preguntas relacionadas con ' + cat.nombre) }}</div>
+        <div class="category-name">{{ cat_name }}</div>
+        <div class="category-desc">{{ cat_desc }}</div>
         <div class="category-count">
           <span>{{ cat.count }} pregunta{{ 's' if cat.count != 1 }}</span>
-          {% if cat.respondidas is defined %}
-            <span style="margin-left:auto;color:var(--green);">{{ cat.respondidas }} resueltas</span>
+          {% if cat_answered is defined %}
+            <span style="margin-left:auto;color:var(--green);">{{ cat_answered }} resueltas</span>
           {% endif %}
         </div>
       </a>
@@ -81,39 +87,31 @@
   </div>
 
   <div class="tag-cloud" id="tag-cloud" role="list" aria-label="Nube de tags">
-    {% if tags %}
-      {% for tag in tags %}
+    {% if tag_list %}
+      {% for tag in tag_list %}
+      {% set t_name = tag.name if tag.name is defined else tag.nombre %}
       <a
-        href="{{ url_for('home') }}?tag={{ tag.nombre }}"
+        href="{{ url_for('home') }}?tag={{ t_name }}"
         class="tag-cloud-item"
-        id="tag-{{ tag.nombre }}"
+        id="tag-{{ t_name }}"
         role="listitem"
-        style="font-size: {{ 0.75 + (tag.count / (tags | map(attribute='count') | max | default(1))) * 0.5 }}rem;"
-        aria-label="{{ tag.nombre }}, {{ tag.count }} preguntas"
+        style="font-size: {{ 0.75 + (tag.count / (tag_list | map(attribute='count') | max | default(1))) * 0.5 }}rem;"
+        aria-label="{{ t_name }}, {{ tag.count }} preguntas"
       >
-        {{ tag.nombre }}
+        {{ t_name }}
         <span class="tag-cloud-count">{{ tag.count }}</span>
       </a>
       {% endfor %}
     {% else %}
       <!-- Default tags -->
       {% set default_tags = [
-        ('python', 42), ('flask', 28), ('javascript', 35), ('sql', 20),
-        ('api-rest', 18), ('sqlalchemy', 15), ('html', 25), ('css', 22),
-        ('git', 12), ('docker', 10), ('testing', 8), ('orm', 7),
-        ('async', 9), ('autenticacion', 6), ('jinja2', 5), ('postgresql', 8),
-        ('react', 11), ('typescript', 9), ('algoritmos', 14), ('seguridad', 7),
+        ('python', 42), ('flask', 38), ('javascript', 29), ('react', 24),
+        ('sql', 21), ('docker', 19), ('git', 17), ('css', 15),
+        ('html', 14), ('api-rest', 13), ('orm', 11), ('pytest', 9),
       ] %}
-      {% set max_count = default_tags | map(attribute=1) | max %}
-      {% for nombre, count in default_tags %}
-      <a
-        href="{{ url_for('home') }}?tag={{ nombre }}"
-        class="tag-cloud-item"
-        id="tag-{{ nombre }}"
-        role="listitem"
-        style="font-size: {{ 0.75 + (count / max_count) * 0.5 }}rem;"
-      >
-        {{ nombre }}
+      {% for tag_name, count in default_tags %}
+      <a href="{{ url_for('home') }}?tag={{ tag_name }}" class="tag-cloud-item" id="tag-default-{{ tag_name }}" role="listitem">
+        {{ tag_name }}
         <span class="tag-cloud-count">{{ count }}</span>
       </a>
       {% endfor %}
@@ -121,45 +119,4 @@
   </div>
 </section>
 
-<!-- ── STATS RÁPIDAS ── -->
-<section aria-labelledby="cat-stats-heading" style="margin-top:var(--space-8);" id="cat-stats-section">
-  <div class="section-divider" id="cat-stats-heading">Resumen</div>
-
-  <div class="stats-grid">
-    <div class="stat-card">
-      <div>
-        <div class="stat-card-value" data-count-up="{{ categorias | length if categorias else 8 }}">{{ categorias | length if categorias else 8 }}</div>
-        <div class="stat-card-label">Categorías activas</div>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div>
-        <div class="stat-card-value" data-count-up="{{ tags | length if tags else 20 }}">{{ tags | length if tags else 20 }}</div>
-        <div class="stat-card-label">Tags únicos</div>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div>
-        <div class="stat-card-value" data-count-up="{{ stats.total_preguntas | default(0) }}">{{ stats.total_preguntas | default(0) }}</div>
-        <div class="stat-card-label">Preguntas categorizadas</div>
-      </div>
-    </div>
-  </div>
-</section>
-
-{% endblock %}
-
-{% block extra_scripts %}
-<script>
-  const tagSearch = document.getElementById('tag-search');
-  if (tagSearch) {
-    tagSearch.addEventListener('input', () => {
-      const q = tagSearch.value.toLowerCase();
-      document.querySelectorAll('#tag-cloud .tag-cloud-item').forEach(tag => {
-        const name = tag.textContent.trim().toLowerCase();
-        tag.style.display = name.includes(q) ? '' : 'none';
-      });
-    });
-  }
-</script>
 {% endblock %}

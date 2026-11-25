@@ -2,22 +2,22 @@
 <article
   class="question-card"
   data-question-item
-  data-title="{{ q.titulo | lower }}"
+  data-title="{{ (q.title or q.titulo) | lower }}"
   data-tags="{{ q.tags | join(',') | lower if q.tags else '' }}"
-  data-answered="{{ 'true' if q.respuestas_count > 0 else 'false' }}"
-  data-has-ai="{{ 'true' if q.tiene_respuesta_ia else 'false' }}"
+  data-answered="{{ 'true' if (q.answers_count or q.respuestas_count or 0) > 0 else 'false' }}"
+  data-has-ai="{{ 'true' if (q.has_ai_response or q.tiene_respuesta_ia) else 'false' }}"
   role="listitem"
   id="question-{{ q.id }}"
 >
   <!-- Estadísticas: Votos y Respuestas -->
   <div class="question-stats" aria-label="Estadísticas">
-    <div class="stat-box" aria-label="{{ q.votos }} votos">
-      <span class="stat-number">{{ q.votos }}</span>
+    <div class="stat-box" aria-label="{{ q.score if q.score is defined else (q.votes if q.votes is defined else (q.votos | default(0))) }} votos">
+      <span class="stat-number">{{ q.score if q.score is defined else (q.votes if q.votes is defined else (q.votos | default(0))) }}</span>
       <span class="stat-label">votos</span>
     </div>
-    <div class="stat-box {{ 'accepted' if q.tiene_aceptada else ('has-answer' if q.respuestas_count > 0 else '') }}"
-         aria-label="{{ q.respuestas_count }} respuestas">
-      <span class="stat-number">{{ q.respuestas_count }}</span>
+    <div class="stat-box {{ 'accepted' if (q.has_accepted or q.tiene_aceptada) else ('has-answer' if (q.answers_count or q.respuestas_count or 0) > 0 else '') }}"
+         aria-label="{{ q.answers_count if q.answers_count is defined else (q.respuestas_count | default(0)) }} respuestas">
+      <span class="stat-number">{{ q.answers_count if q.answers_count is defined else (q.respuestas_count | default(0)) }}</span>
       <span class="stat-label">resp.</span>
     </div>
   </div>
@@ -25,39 +25,53 @@
   <!-- Contenido de la pregunta -->
   <div class="question-body">
     <div class="tags" aria-label="Tags">
-      {% if q.categoria %}
-        <span class="tag tag-cyan">{{ q.categoria }}</span>
+      {% set cat_val = q.category.name if (q.category is mapping or q.category.name is defined) else (q.category or q.categoria) %}
+      {% if cat_val %}
+        <span class="tag tag-cyan">{{ cat_val }}</span>
       {% endif %}
       {% for tag in q.tags[:4] %}
-        <a href="{{ url_for('home') }}?tag={{ tag }}" class="tag">{{ tag }}</a>
+        {% set tag_name = tag.name if tag.name is defined else tag %}
+        <a href="{{ url_for('home') }}?tag={{ tag_name }}" class="tag">{{ tag_name }}</a>
       {% endfor %}
     </div>
 
     <h2 class="question-title">
       <a href="{{ url_for('question_detail', question_id=q.id) }}" id="q-link-{{ q.id }}">
-        {{ q.titulo }}
+        {{ q.title or q.titulo }}
       </a>
     </h2>
 
-    <p class="question-excerpt">{{ q.cuerpo | striptags | truncate(180) }}</p>
+    <p class="question-excerpt">{{ (q.body or q.cuerpo) | striptags | truncate(180) }}</p>
 
     <div class="question-meta">
-      {% if q.tiene_respuesta_ia %}
+      {% if q.has_ai_response or q.tiene_respuesta_ia %}
         <span class="badge badge-ai" title="Tiene una respuesta generada por IA">IA</span>
       {% endif %}
-      {% if q.tiene_aceptada %}
+      {% if q.has_accepted or q.tiene_aceptada %}
         <span class="badge badge-accepted">Resuelta</span>
       {% endif %}
 
-      <div class="author-info" aria-label="Publicado por {{ q.autor.nombre }}">
+      {% set author_obj = q.author or q.autor %}
+      {% set author_name = author_obj.name if (author_obj and author_obj.name is defined) else (author_obj.nombre if (author_obj and author_obj.nombre is defined) else 'Anónimo') %}
+      {% set author_avatar = author_obj.avatar_url if (author_obj and author_obj.avatar_url is defined) else (author_obj.foto if (author_obj and author_obj.foto is defined) else none) %}
+      {% set author_id = author_obj.id if author_obj else 0 %}
+      {% set post_dt = q.post_date or q.fecha_publicacion %}
+
+      <div class="author-info" aria-label="Publicado por {{ author_name }}">
         <div class="author-avatar" aria-hidden="true">
-          {{ q.autor.nombre[0] | upper if q.autor.nombre else '?' }}
+          {% if author_avatar %}
+            <img src="{{ author_avatar }}" alt="{{ author_name }}" />
+          {% else %}
+            {{ author_name[0] | upper if author_name else '?' }}
+          {% endif %}
         </div>
-        <a href="{{ url_for('profile', user_id=q.autor.id) }}" class="author-name">{{ q.autor.nombre }}</a>
+        <a href="{{ url_for('profile', user_id=author_id) }}" class="author-name">{{ author_name }}</a>
         <span>·</span>
-        <time datetime="{{ q.fecha_publicacion.isoformat() }}">
-          {{ q.fecha_publicacion.strftime('%d %b %Y') }}
+        {% if post_dt %}
+        <time datetime="{{ post_dt.isoformat() if post_dt.isoformat is defined else post_dt }}">
+          {{ post_dt.strftime('%d %b %Y') if post_dt.strftime is defined else post_dt }}
         </time>
+        {% endif %}
       </div>
     </div>
   </div>

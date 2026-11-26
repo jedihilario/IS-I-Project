@@ -20,8 +20,14 @@ def _serialize_tag(tag: Tag) -> dict:
     }
 
 
+def get_all_tags() -> list[Tag]:
+    return list(
+        db.session.execute(db.select(Tag).order_by(Tag.name.asc())).scalars().all()
+    )
+
+
 def list_tags():
-    tags = db.session.execute(db.select(Tag).order_by(Tag.name.asc())).scalars().all()
+    tags = get_all_tags()
     serialized = [_serialize_tag(tag) for tag in tags]
     serialized.sort(key=lambda item: (-item["count"], item["name"] or ""))
     return success_response({"tags": serialized}, 200)

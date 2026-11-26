@@ -357,7 +357,9 @@ function initTagInput() {
   const tagHidden  = document.getElementById('tags-hidden');
   if (!tagInput || !tagList) return;
 
-  let tags = [];
+  let tags = tagHidden && tagHidden.value
+    ? tagHidden.value.split(',').map(t => t.trim().toLowerCase()).filter(Boolean)
+    : [];
 
   function renderTags() {
     tagList.innerHTML = '';
@@ -369,6 +371,10 @@ function initTagInput() {
       tagList.appendChild(span);
     });
     if (tagHidden) tagHidden.value = tags.join(',');
+  }
+
+  if (tags.length > 0) {
+    renderTags();
   }
 
   window.removeTag = function(i) {

@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+from flask import session
+from sqlalchemy import func
+
 from is_i_project.api.utils import (
+    ControllerError,
     clear_session_user,
     error_response,
     get_current_user,
@@ -12,7 +16,94 @@ from is_i_project.api.utils import (
     verify_password,
 )
 from is_i_project.extensions import db
-from is_i_project.models import User
+from is_i_project.models import Role, User
+
+
+def _get_or_create_role(role_name: str) -> Role:
+    normalized = role_name.strip().lower()
+    if normalized not in {"admin", "usuario"}:
+        normalized = "usuario"
+    role = db.session.execute(
+        db.select(Role).where(func.lower(Role.name) == normalized)
+    ).scalar_one_or_none()
+    if role is None:
+        role = Role(name=normalized)
+        db.session.add(role)
+        db.session.flush()
+    return role
+
+
+def register_user_record(
+    *,
+    name: str,
+    email: str,
+    password: str,
+    role_name: str | None = None,
+    password_confirm: str | None = None,
+    min_password_length: int = 1,
+) -> User:
+    clean_name = (name or "").strip()
+    clean_email = (email or "").strip().lower()
+    raw_password = password or ""
+
+    if not clean_name or not clean_email or not raw_password:
+        raise ControllerError(
+            "Los campos 'name', 'email' y 'password' son obligatorios", 400
+        )
+    if len(clean_name) > 31:
+        raise ControllerError("El nombre no puede superar los 31 caracteres", 400)
+    if len(clean_email) > 127 or "@" not in clean_email:
+        raise ControllerError("El email no es válido", 400)
+    if len(raw_password) < min_password_length:
+        raise ControllerError(
+            f"La contraseña debe tener al menos {min_password_length} caracteres", 400
+        )
+    if password_confirm is not None and raw_password != password_confirm:
+        raise ControllerError("Las contraseñas no coinciden", 400)
+
+    existing = db.session.execute(
+        db.select(User).where(User.email == clean_email)
+    ).scalar_one_or_none()
+    if existing is not None:
+        raise ControllerError("Ya existe un usuario registrado con ese email", 409)
+
+    role_id = _get_or_create_role(role_name).id if role_name is not None else None
+    user = User(
+        name=clean_name,
+        email=clean_email,
+        password=hash_password(raw_password),
+        role_id=role_id,
+    )
+    db.session.add(user)
+    db.session.commit()
+
+    set_session_user(user)
+    return user
+
+
+def authenticate_user_record(
+    *, email: str, password: str, remember_me: bool = False
+) -> User:
+    clean_email = (email or "").strip().lower()
+    raw_password = password or ""
+
+    if not clean_email or not raw_password:
+        raise ControllerError("Los campos 'email' y 'password' son obligatorios", 400)
+
+    user = db.session.execute(
+        db.select(User).where(User.email == clean_email)
+    ).scalar_one_or_none()
+    if user is None or not verify_password(user.password, raw_password):
+        raise ControllerError("Credenciales inválidas", 401)
+
+    set_session_user(user)
+    if remember_me:
+        session.permanent = True
+    return user
+
+
+def logout_user_session() -> None:
+    clear_session_user()
 
 
 def register():
@@ -20,34 +111,15 @@ def register():
     if data is None:
         return error_response("Cuerpo JSON inválido o ausente", 400)
 
-    name = (data.get("name") or "").strip()
-    email = (data.get("email") or "").strip().lower()
-    password = data.get("password") or ""
-
-    if not name or not email or not password:
-        return error_response(
-            "Los campos 'name', 'email' y 'password' son obligatorios", 400
+    try:
+        user = register_user_record(
+            name=data.get("name") or "",
+            email=data.get("email") or "",
+            password=data.get("password") or "",
         )
-    if len(name) > 31:
-        return error_response("El nombre no puede superar los 31 caracteres", 400)
-    if len(email) > 127 or "@" not in email:
-        return error_response("El email no es válido", 400)
+    except ControllerError as exc:
+        return error_response(exc.message, exc.status_code)
 
-    existing = db.session.execute(
-        db.select(User).where(User.email == email)
-    ).scalar_one_or_none()
-    if existing is not None:
-        return error_response("Ya existe un usuario registrado con ese email", 409)
-
-    user = User(
-        name=name,
-        email=email,
-        password=hash_password(password),
-    )
-    db.session.add(user)
-    db.session.commit()
-
-    set_session_user(user)
     return success_response(
         {
             "message": "Usuario registrado exitosamente",
@@ -62,19 +134,14 @@ def login():
     if data is None:
         return error_response("Cuerpo JSON inválido o ausente", 400)
 
-    email = (data.get("email") or "").strip().lower()
-    password = data.get("password") or ""
+    try:
+        user = authenticate_user_record(
+            email=data.get("email") or "",
+            password=data.get("password") or "",
+        )
+    except ControllerError as exc:
+        return error_response(exc.message, exc.status_code)
 
-    if not email or not password:
-        return error_response("Los campos 'email' y 'password' son obligatorios", 400)
-
-    user = db.session.execute(
-        db.select(User).where(User.email == email)
-    ).scalar_one_or_none()
-    if user is None or not verify_password(user.password, password):
-        return error_response("Credenciales inválidas", 401)
-
-    set_session_user(user)
     return success_response(
         {
             "message": "Sesión iniciada correctamente",
@@ -85,7 +152,7 @@ def login():
 
 
 def logout():
-    clear_session_user()
+    logout_user_session()
     return success_response({"message": "Sesión cerrada correctamente"}, 200)
 
 

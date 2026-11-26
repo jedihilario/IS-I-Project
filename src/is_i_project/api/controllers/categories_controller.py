@@ -23,10 +23,16 @@ def _serialize_category(category: Category) -> dict:
     }
 
 
+def get_all_categories() -> list[Category]:
+    return list(
+        db.session.execute(db.select(Category).order_by(Category.name.asc()))
+        .scalars()
+        .all()
+    )
+
+
 def list_categories():
-    categories = db.session.execute(
-        db.select(Category).order_by(Category.name.asc())
-    ).scalars().all()
+    categories = get_all_categories()
     return success_response(
         {"categories": [_serialize_category(cat) for cat in categories]}, 200
     )

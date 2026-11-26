@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from datetime import date
 
 from flask import abort, flash, redirect, render_template, request, url_for
@@ -37,7 +36,6 @@ from is_i_project.api.utils import (
     is_admin_user,
 )
 from is_i_project.web.presenters import (
-    ALLOWED_AVATAR_EXTENSIONS,
     SimplePagination,
     build_answer_vm,
     build_category_vm,
@@ -47,7 +45,6 @@ from is_i_project.web.presenters import (
     build_user_vm,
     build_vote_vm,
     get_ai_config,
-    get_avatars_folder,
 )
 
 
@@ -361,35 +358,6 @@ def profile(user_id: int):
         answers=answers,
         votes=votes,
     )
-
-
-def profile_photo_upload():
-    user = get_current_user()
-    if user is None:
-        flash("Debés iniciar sesión para cambiar tu foto de perfil.", "error")
-        return redirect(url_for("login"))
-
-    file = request.files.get("avatar")
-    if file is None or not file.filename:
-        flash("No se seleccionó ninguna imagen válida.", "error")
-        return redirect(url_for("profile", user_id=user.id))
-
-    ext = os.path.splitext(file.filename)[1].lower()
-    if ext not in ALLOWED_AVATAR_EXTENSIONS:
-        flash("Formato no soportado. Usá PNG, JPG, JPEG o WEBP.", "error")
-        return redirect(url_for("profile", user_id=user.id))
-
-    avatars_folder = get_avatars_folder()
-    avatars_folder.mkdir(parents=True, exist_ok=True)
-
-    for old_ext in ALLOWED_AVATAR_EXTENSIONS:
-        old_path = avatars_folder / f"user_{user.id}{old_ext}"
-        if old_path.exists():
-            old_path.unlink()
-
-    file.save(avatars_folder / f"user_{user.id}{ext}")
-    flash("¡Foto de perfil actualizada exitosamente!", "success")
-    return redirect(url_for("profile", user_id=user.id))
 
 
 def categories():

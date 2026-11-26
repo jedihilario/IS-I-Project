@@ -1,13 +1,11 @@
 from __future__ import annotations
 
 import math
-import os
 from dataclasses import dataclass, field
 from datetime import date, timedelta
-from pathlib import Path
 from typing import Any
 
-from flask import current_app, url_for
+from flask import current_app
 from sqlalchemy import func
 
 from is_i_project.api.utils import (
@@ -28,8 +26,6 @@ from is_i_project.models import (
     Vote,
 )
 from is_i_project.models.types import Author_Type
-
-ALLOWED_AVATAR_EXTENSIONS = (".png", ".jpg", ".jpeg", ".webp")
 
 MODEL_TO_PROVIDER = {
     "gpt-4o": "openai",
@@ -169,22 +165,6 @@ class SimplePagination:
         return result
 
 
-def get_avatars_folder() -> Path:
-    static_folder = current_app.static_folder or os.path.join(
-        current_app.root_path, "static"
-    )
-    return Path(static_folder) / "uploads" / "avatars"
-
-
-def get_user_avatar_url(user_id: int) -> str | None:
-    folder = get_avatars_folder()
-    for ext in ALLOWED_AVATAR_EXTENSIONS:
-        filename = f"user_{user_id}{ext}"
-        if (folder / filename).is_file():
-            return url_for("static", filename=f"uploads/avatars/{filename}")
-    return None
-
-
 def build_user_vm(user: User | None) -> UserVM | None:
     if user is None:
         return None
@@ -196,7 +176,6 @@ def build_user_vm(user: User | None) -> UserVM | None:
         reputation=calculate_user_reputation(user),
         questions_count=len(user.questions),
         answers_count=len(user.responses),
-        avatar_url=get_user_avatar_url(user.id),
     )
 
 

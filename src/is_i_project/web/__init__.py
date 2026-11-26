@@ -85,12 +85,6 @@ def register_web(app: Flask) -> None:
         methods=["GET"],
     )
     app.add_url_rule(
-        "/perfil/foto",
-        endpoint="profile_photo_upload",
-        view_func=views.profile_photo_upload,
-        methods=["POST"],
-    )
-    app.add_url_rule(
         "/categorias",
         endpoint="categories",
         view_func=views.categories,

@@ -305,7 +305,6 @@ Estas rutas renderizan las plantillas Jinja2 y procesan formularios tradicionale
 | `answer_create` | `POST` | `/preguntas/<int:question_id>/responder` | Redirección a hilo | **POST:** `body`. |
 | `answer_delete` | `POST` / `GET` | `/respuestas/<int:answer_id>/eliminar` | Redirección a hilo | Elimina una respuesta. |
 | `profile` | `GET` | `/usuario/<int:user_id>` | `user/profile.html` | Perfil público y pestañas de actividad. |
-| `profile_photo_upload` | `POST` | `/perfil/foto` | Redirección a perfil | Subida de archivo de imagen `multipart/form-data` campo `avatar`. Se guarda en `static/uploads/avatars/user_<id>.<ext>`. |
 | `login` | `GET`, `POST` | `/login` | `auth/auth.html` | **POST:** `email`, `password`. |
 | `register` | `GET`, `POST` | `/registro` | `auth/auth.html` | **POST:** `name`, `email`, `password`, `role`. |
 | `logout` | `GET`, `POST` | `/logout` | Redirección a login | Destruye la sesión de usuario. |

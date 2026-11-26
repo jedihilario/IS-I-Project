@@ -1144,14 +1144,6 @@ textarea { min-height: 120px; resize: vertical; }
   align-items: center;
 }
 
-.profile-avatar-container {
-  position: relative;
-  display: inline-block;
-  cursor: pointer;
-  width: 76px;
-  height: 76px;
-}
-
 .profile-avatar-lg {
   width: 76px;
   height: 76px;
@@ -1166,28 +1158,6 @@ textarea { min-height: 120px; resize: vertical; }
   border: 1px solid var(--border);
   flex-shrink: 0;
   overflow: hidden;
-}
-
-.profile-avatar-overlay {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.6);
-  border-radius: var(--radius-lg);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: #ffffff;
-  font-size: 11px;
-  opacity: 0;
-  transition: opacity var(--transition-fast);
-  cursor: pointer;
-  text-align: center;
-  padding: 4px;
-}
-
-.profile-avatar-container:hover .profile-avatar-overlay {
-  opacity: 1;
 }
 
 .user-avatar img,

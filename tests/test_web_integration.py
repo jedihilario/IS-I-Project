@@ -168,7 +168,7 @@ def test_web_register_login_logout_and_question_answer_flow(client, app):
         data={"email": "lucas@example.com", "password": "wrongpassword"},
     )
     assert bad_login.status_code == 200
-    assert "incorrectos" in bad_login.get_data(as_text=True)
+    assert "Credenciales inválidas" in bad_login.get_data(as_text=True)
 
     good_login = client.post(
         "/login",

@@ -88,6 +88,7 @@
 
   <div class="tag-cloud" id="tag-cloud" role="list" aria-label="Nube de tags">
     {% if tag_list %}
+      {% set max_tag_count = [tag_list | map(attribute='count') | max | default(1), 1] | max %}
       {% for tag in tag_list %}
       {% set t_name = tag.name if tag.name is defined else tag.nombre %}
       <a
@@ -95,7 +96,7 @@
         class="tag-cloud-item"
         id="tag-{{ t_name }}"
         role="listitem"
-        style="font-size: {{ 0.75 + (tag.count / (tag_list | map(attribute='count') | max | default(1))) * 0.5 }}rem;"
+        style="font-size: {{ 0.75 + (tag.count / max_tag_count) * 0.5 }}rem;"
         aria-label="{{ t_name }}, {{ tag.count }} preguntas"
       >
         {{ t_name }}

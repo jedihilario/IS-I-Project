@@ -13,6 +13,7 @@ from sqlalchemy import func
 from is_i_project.api.utils import (
     calculate_user_reputation,
     get_post_score,
+    get_user_role_name,
     get_user_vote,
 )
 from is_i_project.extensions import db
@@ -22,7 +23,6 @@ from is_i_project.models import (
     Category,
     Question,
     Response,
-    Role,
     Tag,
     User,
     Vote,
@@ -30,12 +30,6 @@ from is_i_project.models import (
 from is_i_project.models.types import Author_Type
 
 ALLOWED_AVATAR_EXTENSIONS = (".png", ".jpg", ".jpeg", ".webp")
-
-PROVIDER_TO_MODEL = {
-    "openai": "GPT-4o",
-    "gemini": "Gemini",
-    "local": "Local LLM",
-}
 
 MODEL_TO_PROVIDER = {
     "gpt-4o": "openai",
@@ -189,19 +183,6 @@ def get_user_avatar_url(user_id: int) -> str | None:
         if (folder / filename).is_file():
             return url_for("static", filename=f"uploads/avatars/{filename}")
     return None
-
-
-def get_user_role_name(user: User | None) -> str:
-    if user is None or user.role_id is None:
-        return "usuario"
-    role = db.session.get(Role, user.role_id)
-    if role is None or not role.name:
-        return "usuario"
-    return role.name.strip().lower()
-
-
-def is_admin_user(user: User | None) -> bool:
-    return get_user_role_name(user) == "admin"
 
 
 def build_user_vm(user: User | None) -> UserVM | None:

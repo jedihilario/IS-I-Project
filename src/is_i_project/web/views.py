@@ -3,47 +3,41 @@ from __future__ import annotations
 import os
 from datetime import date
 
-from flask import (
-    abort,
-    current_app,
-    flash,
-    redirect,
-    render_template,
-    request,
-    session,
-    url_for,
-)
-from sqlalchemy import func, or_
+from flask import abort, flash, redirect, render_template, request, url_for
 
+from is_i_project.api.controllers.admin_controller import update_ai_config_record
+from is_i_project.api.controllers.answers_controller import (
+    create_answer_record,
+    delete_answer_record,
+)
+from is_i_project.api.controllers.auth_controller import (
+    authenticate_user_record,
+    logout_user_session,
+    register_user_record,
+)
+from is_i_project.api.controllers.categories_controller import get_all_categories
 from is_i_project.api.controllers.questions_controller import (
-    _resolve_category,
-    _resolve_tags,
+    create_question_record,
+    delete_question_record,
+    get_question_record,
+    get_similar_questions,
+    query_questions,
+    update_question_record,
+)
+from is_i_project.api.controllers.tags_controller import get_all_tags
+from is_i_project.api.controllers.users_controller import (
+    get_all_users,
+    get_user_record,
 )
 from is_i_project.api.utils import (
-    clear_session_user,
+    ControllerError,
     get_current_user,
     get_current_user_id,
-    get_post_score,
     get_user_vote,
-    hash_password,
-    set_session_user,
-    verify_password,
+    is_admin_user,
 )
-from is_i_project.extensions import db
-from is_i_project.models import (
-    AI_Author,
-    Author,
-    Category,
-    Question,
-    Response,
-    Role,
-    Tag,
-    User,
-)
-from is_i_project.models.types import Author_Type
 from is_i_project.web.presenters import (
     ALLOWED_AVATAR_EXTENSIONS,
-    PROVIDER_TO_MODEL,
     SimplePagination,
     build_answer_vm,
     build_category_vm,
@@ -54,22 +48,7 @@ from is_i_project.web.presenters import (
     build_vote_vm,
     get_ai_config,
     get_avatars_folder,
-    is_admin_user,
 )
-
-
-def _get_or_create_role(role_name: str) -> Role:
-    normalized = role_name.strip().lower()
-    if normalized not in {"admin", "usuario"}:
-        normalized = "usuario"
-    role = db.session.execute(
-        db.select(Role).where(func.lower(Role.name) == normalized)
-    ).scalar_one_or_none()
-    if role is None:
-        role = Role(name=normalized)
-        db.session.add(role)
-        db.session.flush()
-    return role
 
 
 def index():
@@ -83,6 +62,8 @@ def home():
     tag_filter = (request.args.get("tag") or "").strip()
     search_query = (request.args.get("q") or "").strip()
     feed_filter = (request.args.get("filter") or "all").strip().lower()
+    if feed_filter not in {"all", "top", "unanswered", "ai"}:
+        feed_filter = "all"
 
     try:
         page = max(1, int(request.args.get("page", 1)))
@@ -90,68 +71,28 @@ def home():
         page = 1
     per_page = 10
 
-    stmt = db.select(Question)
+    page_rows, total, _ = query_questions(
+        category_filter=category_filter,
+        tag_filter=tag_filter,
+        search_query=search_query,
+        feed_filter=feed_filter,
+        page=page,
+        per_page=per_page,
+    )
 
-    if category_filter:
-        normalized_cat = category_filter.replace("-", " ").lower()
-        stmt = stmt.where(
-            Question.category.has(
-                or_(
-                    func.lower(Category.name) == category_filter.lower(),
-                    func.lower(Category.name) == normalized_cat,
-                )
-            )
-        )
+    pagination = SimplePagination(page=page, per_page=per_page, total=total)
+    page_questions = [build_question_vm(q) for q in page_rows]
 
-    if tag_filter:
-        stmt = stmt.where(
-            Question.tags.any(func.lower(Tag.name) == tag_filter.lower())
-        )
-
-    if search_query:
-        pattern = f"%{search_query}%"
-        stmt = stmt.where(
-            or_(Question.title.ilike(pattern), Question.body.ilike(pattern))
-        )
-
-    if feed_filter == "unanswered":
-        stmt = stmt.where(~Question.responses.any())
-    elif feed_filter == "ai":
-        stmt = stmt.where(
-            Question.responses.any(
-                Response.author.has(Author.author_type == Author_Type.LLM)
-            )
-        )
-
-    stmt = stmt.order_by(Question.post_date.desc(), Question.id.desc())
-    all_questions = list(db.session.execute(stmt).scalars().all())
-
-    if feed_filter == "top":
-        all_questions.sort(
-            key=lambda q: (get_post_score(q), q.post_date, q.id), reverse=True
-        )
-
-    pagination = SimplePagination(page=page, per_page=per_page, total=len(all_questions))
-    start = (page - 1) * per_page
-    page_questions = [
-        build_question_vm(q) for q in all_questions[start : start + per_page]
-    ]
-
-    categories_rows = db.session.execute(db.select(Category)).scalars().all()
     popular_categories = sorted(
-        (build_category_vm(c) for c in categories_rows),
+        (build_category_vm(c) for c in get_all_categories()),
         key=lambda c: (-c.count, c.name.lower()),
     )[:5]
-
-    users_rows = db.session.execute(db.select(User)).scalars().all()
     top_users = sorted(
-        (u_vm for u in users_rows if (u_vm := build_user_vm(u)) is not None),
+        (u_vm for u in get_all_users() if (u_vm := build_user_vm(u)) is not None),
         key=lambda u: (-u.reputation, u.name.lower()),
     )[:5]
-
-    tags_rows = db.session.execute(db.select(Tag)).scalars().all()
     popular_tags = sorted(
-        (build_tag_vm(t) for t in tags_rows),
+        (build_tag_vm(t) for t in get_all_tags()),
         key=lambda t: (-t.count, t.name.lower()),
     )[:10]
 
@@ -168,43 +109,20 @@ def home():
 
 
 def question_detail(question_id: int):
-    question = db.session.get(Question, question_id)
-    if question is None:
+    try:
+        question = get_question_record(question_id)
+    except ControllerError:
         abort(404)
 
     current_user_id = get_current_user_id()
-    question_vm = build_question_vm(question)
-
     answers = [build_answer_vm(r, current_user_id) for r in question.responses]
     answers.sort(key=lambda a: (not a.accepted, -a.score, a.id))
 
-    similar_stmt = db.select(Question).where(Question.id != question.id)
-    if question.category_id is not None:
-        similar_stmt = similar_stmt.where(Question.category_id == question.category_id)
-    similar_rows = list(
-        db.session.execute(
-            similar_stmt.order_by(Question.post_date.desc(), Question.id.desc()).limit(3)
-        )
-        .scalars()
-        .all()
-    )
-    if len(similar_rows) < 3:
-        existing_ids = {question.id, *(q.id for q in similar_rows)}
-        extra_rows = (
-            db.session.execute(
-                db.select(Question)
-                .where(Question.id.notin_(existing_ids))
-                .order_by(Question.post_date.desc(), Question.id.desc())
-                .limit(3 - len(similar_rows))
-            )
-            .scalars()
-            .all()
-        )
-        similar_rows.extend(extra_rows)
+    similar_rows = get_similar_questions(question, limit=3)
 
     return render_template(
         "question_detail.html",
-        question=question_vm,
+        question=build_question_vm(question),
         answers=answers,
         user_vote=get_user_vote(question, current_user_id),
         similar_questions=[build_question_vm(q) for q in similar_rows],
@@ -217,50 +135,27 @@ def question_new():
         flash("Debés iniciar sesión para publicar una pregunta.", "info")
         return redirect(url_for("login"))
 
-    categories_rows = (
-        db.session.execute(db.select(Category).order_by(Category.name.asc()))
-        .scalars()
-        .all()
-    )
-    categories_vms = [build_category_vm(c) for c in categories_rows]
+    categories_vms = [build_category_vm(c) for c in get_all_categories()]
 
     if request.method == "POST":
-        title = (request.form.get("title") or request.form.get("titulo") or "").strip()
-        body = (request.form.get("body") or request.form.get("cuerpo") or "").strip()
+        title = request.form.get("title") or request.form.get("titulo") or ""
+        body = request.form.get("body") or request.form.get("cuerpo") or ""
         raw_category = (
             request.form.get("category") or request.form.get("categoria") or ""
-        ).strip()
-        raw_tags = (request.form.get("tags") or "").strip()
-
-        if not title or not body:
-            flash("El título y el cuerpo de la pregunta son obligatorios.", "error")
-            return render_template("question_new.html", categories=categories_vms)
-        if len(title) > 63:
-            flash("El título no puede superar los 63 caracteres.", "error")
-            return render_template("question_new.html", categories=categories_vms)
-
-        category, cat_err = _resolve_category({"category": raw_category})
-        if cat_err is not None:
-            db.session.rollback()
-            flash("La categoría indicada no es válida.", "error")
-            return render_template("question_new.html", categories=categories_vms)
-
-        tags, tag_err = _resolve_tags(raw_tags) if raw_tags else ([], None)
-        if tag_err is not None:
-            db.session.rollback()
-            flash("Alguno de los tags ingresados no es válido.", "error")
-            return render_template("question_new.html", categories=categories_vms)
-
-        question = Question(
-            title=title,
-            body=body,
-            post_date=date.today(),
-            author=user,
-            category=category,
-            tags=tags or [],
         )
-        db.session.add(question)
-        db.session.commit()
+        raw_tags = request.form.get("tags") or ""
+
+        try:
+            question = create_question_record(
+                user,
+                title=title,
+                body=body,
+                category=raw_category,
+                tags=raw_tags,
+            )
+        except ControllerError as exc:
+            flash(exc.message, "error")
+            return render_template("question_new.html", categories=categories_vms)
 
         flash("Pregunta publicada exitosamente.", "success")
         return redirect(url_for("question_detail", question_id=question.id))
@@ -274,70 +169,43 @@ def question_edit(question_id: int):
         flash("Debés iniciar sesión para editar una pregunta.", "info")
         return redirect(url_for("login"))
 
-    question = db.session.get(Question, question_id)
-    if question is None:
+    try:
+        question = get_question_record(question_id)
+    except ControllerError:
         abort(404)
 
     if question.author_id != user.id and not is_admin_user(user):
         flash("No tenés permisos para editar esta pregunta.", "error")
         return redirect(url_for("question_detail", question_id=question.id))
 
-    categories_rows = (
-        db.session.execute(db.select(Category).order_by(Category.name.asc()))
-        .scalars()
-        .all()
-    )
-    categories_vms = [build_category_vm(c) for c in categories_rows]
+    categories_vms = [build_category_vm(c) for c in get_all_categories()]
     edit_question = build_question_vm(question)
 
     if request.method == "POST":
-        title = (request.form.get("title") or request.form.get("titulo") or "").strip()
-        body = (request.form.get("body") or request.form.get("cuerpo") or "").strip()
+        title = request.form.get("title") or request.form.get("titulo") or ""
+        body = request.form.get("body") or request.form.get("cuerpo") or ""
         raw_category = (
             request.form.get("category") or request.form.get("categoria") or ""
-        ).strip()
-        raw_tags = (request.form.get("tags") or "").strip()
+        )
+        raw_tags = request.form.get("tags") or ""
 
-        if not title or not body:
-            flash("El título y el cuerpo de la pregunta son obligatorios.", "error")
+        try:
+            update_question_record(
+                question_id,
+                user,
+                title=title,
+                body=body,
+                category=raw_category,
+                tags=raw_tags,
+                allow_admin=True,
+            )
+        except ControllerError as exc:
+            flash(exc.message, "error")
             return render_template(
                 "question_new.html",
                 categories=categories_vms,
                 edit_question=edit_question,
             )
-        if len(title) > 63:
-            flash("El título no puede superar los 63 caracteres.", "error")
-            return render_template(
-                "question_new.html",
-                categories=categories_vms,
-                edit_question=edit_question,
-            )
-
-        category, cat_err = _resolve_category({"category": raw_category})
-        if cat_err is not None:
-            db.session.rollback()
-            flash("La categoría indicada no es válida.", "error")
-            return render_template(
-                "question_new.html",
-                categories=categories_vms,
-                edit_question=edit_question,
-            )
-
-        tags, tag_err = _resolve_tags(raw_tags) if raw_tags else ([], None)
-        if tag_err is not None:
-            db.session.rollback()
-            flash("Alguno de los tags ingresados no es válido.", "error")
-            return render_template(
-                "question_new.html",
-                categories=categories_vms,
-                edit_question=edit_question,
-            )
-
-        question.title = title
-        question.body = body
-        question.category = category
-        question.tags = tags or []
-        db.session.commit()
 
         flash("Pregunta actualizada correctamente.", "success")
         return redirect(url_for("question_detail", question_id=question.id))
@@ -355,16 +223,14 @@ def question_delete(question_id: int):
         flash("Debés iniciar sesión para eliminar una pregunta.", "info")
         return redirect(url_for("login"))
 
-    question = db.session.get(Question, question_id)
-    if question is None:
-        abort(404)
+    try:
+        delete_question_record(question_id, user, allow_admin=True)
+    except ControllerError as exc:
+        if exc.status_code == 404:
+            abort(404)
+        flash(exc.message, "error")
+        return redirect(url_for("question_detail", question_id=question_id))
 
-    if question.author_id != user.id and not is_admin_user(user):
-        flash("No tenés permisos para eliminar esta pregunta.", "error")
-        return redirect(url_for("question_detail", question_id=question.id))
-
-    db.session.delete(question)
-    db.session.commit()
     flash("Pregunta eliminada.", "info")
     return redirect(url_for("home"))
 
@@ -375,27 +241,17 @@ def answer_create(question_id: int):
         flash("Debés iniciar sesión para responder.", "info")
         return redirect(url_for("login"))
 
-    question = db.session.get(Question, question_id)
-    if question is None:
-        abort(404)
-
-    body = (request.form.get("body") or request.form.get("cuerpo") or "").strip()
-    if not body:
-        flash("La respuesta no puede estar vacía.", "error")
-        return redirect(url_for("question_detail", question_id=question.id))
-
-    answer = Response(
-        body=body,
-        post_date=date.today(),
-        accepted=False,
-        author=user,
-        question=question,
-    )
-    db.session.add(answer)
-    db.session.commit()
+    body = request.form.get("body") or request.form.get("cuerpo") or ""
+    try:
+        create_answer_record(question_id, user, body=body)
+    except ControllerError as exc:
+        if exc.status_code == 404:
+            abort(404)
+        flash(exc.message, "error")
+        return redirect(url_for("question_detail", question_id=question_id))
 
     flash("Respuesta publicada exitosamente.", "success")
-    return redirect(url_for("question_detail", question_id=question.id))
+    return redirect(url_for("question_detail", question_id=question_id))
 
 
 def answer_delete(answer_id: int):
@@ -404,17 +260,14 @@ def answer_delete(answer_id: int):
         flash("Debés iniciar sesión para eliminar una respuesta.", "info")
         return redirect(url_for("login"))
 
-    answer = db.session.get(Response, answer_id)
-    if answer is None:
-        abort(404)
+    try:
+        question_id = delete_answer_record(answer_id, user, allow_admin=True)
+    except ControllerError as exc:
+        if exc.status_code == 404:
+            abort(404)
+        flash(exc.message, "error")
+        return redirect(url_for("home"))
 
-    if answer.author_id != user.id and not is_admin_user(user):
-        flash("No tenés permisos para eliminar esta respuesta.", "error")
-        return redirect(url_for("question_detail", question_id=answer.question_id))
-
-    question_id = answer.question_id
-    db.session.delete(answer)
-    db.session.commit()
     flash("Respuesta eliminada.", "info")
     return redirect(url_for("question_detail", question_id=question_id))
 
@@ -424,22 +277,18 @@ def login():
         return redirect(url_for("home"))
 
     if request.method == "POST":
-        email = (request.form.get("email") or "").strip().lower()
+        email = request.form.get("email") or ""
         password = request.form.get("password") or ""
+        remember_me = bool(request.form.get("remember_me"))
 
-        if not email or not password:
-            flash("Por favor completá todos los campos.", "error")
+        try:
+            user = authenticate_user_record(
+                email=email, password=password, remember_me=remember_me
+            )
+        except ControllerError as exc:
+            flash(exc.message, "error")
             return render_template("auth/auth.html", active_tab="login")
 
-        user = db.session.execute(
-            db.select(User).where(User.email == email)
-        ).scalar_one_or_none()
-        if user is None or not verify_password(user.password, password):
-            flash("Email o contraseña incorrectos.", "error")
-            return render_template("auth/auth.html", active_tab="login")
-
-        set_session_user(user)
-        session.permanent = bool(request.form.get("remember_me"))
         flash(f"¡Bienvenido de nuevo, {user.name}!", "success")
         return redirect(url_for("home"))
 
@@ -451,48 +300,25 @@ def register():
         return redirect(url_for("home"))
 
     if request.method == "POST":
-        name = (request.form.get("name") or request.form.get("nombre") or "").strip()
-        email = (request.form.get("email") or "").strip().lower()
+        name = request.form.get("name") or request.form.get("nombre") or ""
+        email = request.form.get("email") or ""
         password = request.form.get("password") or ""
         password_confirm = request.form.get("password_confirm")
-        role_name = (
-            request.form.get("role") or request.form.get("rol") or "usuario"
-        ).strip()
+        role_name = request.form.get("role") or request.form.get("rol") or "usuario"
 
-        if not name or not email or not password:
-            flash("Por favor completá todos los campos obligatorios.", "error")
-            return render_template("auth/auth.html", active_tab="register")
-        if len(name) > 31:
-            flash("El nombre no puede superar los 31 caracteres.", "error")
-            return render_template("auth/auth.html", active_tab="register")
-        if len(email) > 127 or "@" not in email:
-            flash("El email ingresado no es válido.", "error")
-            return render_template("auth/auth.html", active_tab="register")
-        if len(password) < 8:
-            flash("La contraseña debe tener al menos 8 caracteres.", "error")
-            return render_template("auth/auth.html", active_tab="register")
-        if password_confirm is not None and password != password_confirm:
-            flash("Las contraseñas no coinciden.", "error")
+        try:
+            user = register_user_record(
+                name=name,
+                email=email,
+                password=password,
+                role_name=role_name,
+                password_confirm=password_confirm,
+                min_password_length=8,
+            )
+        except ControllerError as exc:
+            flash(exc.message, "error")
             return render_template("auth/auth.html", active_tab="register")
 
-        existing = db.session.execute(
-            db.select(User).where(User.email == email)
-        ).scalar_one_or_none()
-        if existing is not None:
-            flash("Ya existe un usuario registrado con ese email.", "error")
-            return render_template("auth/auth.html", active_tab="register")
-
-        role = _get_or_create_role(role_name)
-        user = User(
-            name=name,
-            email=email,
-            password=hash_password(password),
-            role_id=role.id,
-        )
-        db.session.add(user)
-        db.session.commit()
-
-        set_session_user(user)
         flash(f"Cuenta creada exitosamente. ¡Bienvenido, {user.name}!", "success")
         return redirect(url_for("home"))
 
@@ -500,19 +326,18 @@ def register():
 
 
 def logout():
-    clear_session_user()
+    logout_user_session()
     flash("Sesión cerrada correctamente.", "info")
     return redirect(url_for("login"))
 
 
 def profile(user_id: int):
-    user = db.session.get(User, user_id)
-    if user is None:
+    try:
+        user = get_user_record(user_id)
+    except ControllerError:
         abort(404)
 
     current_user_id = get_current_user_id()
-    user_vm = build_user_vm(user)
-
     questions = sorted(
         (build_question_vm(q) for q in user.questions),
         key=lambda q: (q.post_date or date.min, q.id),
@@ -531,7 +356,7 @@ def profile(user_id: int):
 
     return render_template(
         "user/profile.html",
-        user=user_vm,
+        user=build_user_vm(user),
         questions=questions,
         answers=answers,
         votes=votes,
@@ -568,21 +393,12 @@ def profile_photo_upload():
 
 
 def categories():
-    categories_rows = (
-        db.session.execute(db.select(Category).order_by(Category.name.asc()))
-        .scalars()
-        .all()
-    )
-    tags_rows = (
-        db.session.execute(db.select(Tag).order_by(Tag.name.asc())).scalars().all()
-    )
-
     category_vms = sorted(
-        (build_category_vm(c) for c in categories_rows),
+        (build_category_vm(c) for c in get_all_categories()),
         key=lambda c: (-c.count, c.name.lower()),
     )
     tag_vms = sorted(
-        (build_tag_vm(t) for t in tags_rows),
+        (build_tag_vm(t) for t in get_all_tags()),
         key=lambda t: (-t.count, t.name.lower()),
     )
 
@@ -603,24 +419,13 @@ def admin_dashboard():
         flash("No tenés permisos de administrador.", "error")
         return redirect(url_for("home"))
 
-    users_rows = (
-        db.session.execute(db.select(User).order_by(User.id.asc())).scalars().all()
-    )
-    recent_q_rows = (
-        db.session.execute(
-            db.select(Question)
-            .order_by(Question.post_date.desc(), Question.id.desc())
-            .limit(50)
-        )
-        .scalars()
-        .all()
-    )
+    recent_rows, _, _ = query_questions(page=1, per_page=50)
 
     return render_template(
         "admin/dashboard.html",
         stats=build_global_stats(),
-        users=[u_vm for u in users_rows if (u_vm := build_user_vm(u)) is not None],
-        recent_questions=[build_question_vm(q) for q in recent_q_rows],
+        users=[u_vm for u in get_all_users() if (u_vm := build_user_vm(u)) is not None],
+        recent_questions=[build_question_vm(q) for q in recent_rows],
         ai_config=get_ai_config(),
     )
 
@@ -634,44 +439,22 @@ def admin_config_ai():
         flash("No tenés permisos de administrador.", "error")
         return redirect(url_for("home"))
 
-    provider = (request.form.get("ai_provider") or "openai").strip().lower()
-    if provider not in PROVIDER_TO_MODEL:
-        provider = "openai"
-
     try:
-        hours_threshold = max(1, min(720, int(request.form.get("umbral_horas", 24))))
+        hours_threshold = int(request.form.get("umbral_horas", 24))
     except ValueError:
         hours_threshold = 24
 
     try:
-        timeout = max(5, min(300, int(request.form.get("timeout_segundos", 60))))
+        timeout = int(request.form.get("timeout_segundos", 60))
     except ValueError:
         timeout = 60
 
-    enabled = bool(request.form.get("ai_enabled"))
-
-    ai_author = (
-        db.session.execute(db.select(AI_Author).order_by(AI_Author.id.asc()))
-        .scalars()
-        .first()
+    update_ai_config_record(
+        provider=request.form.get("ai_provider") or "openai",
+        hours_threshold=hours_threshold,
+        timeout=timeout,
+        enabled=bool(request.form.get("ai_enabled")),
     )
-    if ai_author is None:
-        ai_author = AI_Author(
-            modelName=PROVIDER_TO_MODEL[provider],
-            timeout=timeout,
-        )
-        db.session.add(ai_author)
-    else:
-        ai_author.modelName = PROVIDER_TO_MODEL[provider]
-        ai_author.timeout = timeout
-    db.session.commit()
-
-    current_app.config["AI_CONFIG"] = {
-        "provider": provider,
-        "hours_threshold": hours_threshold,
-        "timeout": timeout,
-        "enabled": enabled,
-    }
 
     flash("Configuración de IA guardada correctamente.", "success")
     return redirect(url_for("admin_dashboard"))

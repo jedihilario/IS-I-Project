@@ -19,25 +19,7 @@
 
 <!-- ── PROFILE HEADER ── -->
 <section class="profile-header" aria-label="Perfil de usuario" id="profile-header">
-  <!-- Avatar (con opción de cambiar imagen si es mi cuenta) -->
-  {% if current_user and current_user.id == u.id %}
-  <div class="profile-avatar-container" onclick="document.getElementById('avatar-file-input').click();" title="Haz clic para cambiar tu foto de perfil">
-    <div class="profile-avatar-lg" aria-hidden="true" id="profile-avatar-display">
-      {% if u_avatar %}
-        <img src="{{ u_avatar }}" alt="{{ u_name }}" id="profile-avatar-img" />
-      {% else %}
-        <span id="profile-avatar-initial">{{ u_name[0] | upper if u_name else '?' }}</span>
-      {% endif %}
-    </div>
-    <div class="profile-avatar-overlay">
-      <span style="font-size:20px;">📷</span>
-      <span style="font-weight:600;">Cambiar</span>
-    </div>
-    <form id="avatar-form" action="{{ url_for('profile_photo_upload') }}" method="POST" enctype="multipart/form-data" style="display:none;">
-      <input type="file" id="avatar-file-input" name="avatar" accept="image/png, image/jpeg, image/jpg, image/webp" onchange="document.getElementById('avatar-form').submit();" />
-    </form>
-  </div>
-  {% else %}
+  <!-- Avatar -->
   <div class="profile-avatar-lg" aria-hidden="true">
     {% if u_avatar %}
       <img src="{{ u_avatar }}" alt="{{ u_name }}" />
@@ -45,7 +27,6 @@
       {{ u_name[0] | upper if u_name else '?' }}
     {% endif %}
   </div>
-  {% endif %}
 
   <!-- Info -->
   <div>
@@ -82,14 +63,6 @@
     </div>
   </div>
 
-  <!-- Botón de cambiar foto para tu propio perfil -->
-  {% if current_user and current_user.id == u.id %}
-  <div style="display:flex;flex-direction:column;gap:var(--space-2);">
-    <button type="button" class="btn btn-secondary" onclick="document.getElementById('avatar-file-input').click();" id="btn-change-avatar">
-      📷 Cambiar foto
-    </button>
-  </div>
-  {% endif %}
 </section>
 
 <!-- ── REPUTACIÓN BAR ── -->

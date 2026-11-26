@@ -1,6 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Nueva pregunta — QAI{% endblock %}
+{% set is_edit = edit_question is defined and edit_question %}
+{% set current_title = request.form.title | default(request.form.titulo | default(edit_question.title if is_edit else '')) %}
+{% set current_body = request.form.body | default(request.form.cuerpo | default(edit_question.body if is_edit else '')) %}
+{% set current_category = request.form.category | default(request.form.categoria | default(edit_question.category if is_edit else '')) %}
+{% set current_tags = request.form.tags | default((edit_question.tags | join(',')) if (is_edit and edit_question.tags) else '') %}
+
+{% block title %}{{ 'Editar pregunta' if is_edit else 'Nueva pregunta' }} — QAI{% endblock %}
 {% block meta_description %}Hacé tu pregunta a la comunidad y recibí respuestas de personas y de la IA.{% endblock %}
 
 {% block content %}
@@ -8,14 +14,14 @@
 
   <div class="page-header">
     <div>
-      <h1 class="page-title">Nueva pregunta</h1>
-      <p class="page-subtitle">Describí tu problema con detalle para obtener mejores respuestas.</p>
+      <h1 class="page-title">{{ 'Editar pregunta' if is_edit else 'Nueva pregunta' }}</h1>
+      <p class="page-subtitle">{{ 'Actualizá los detalles de tu pregunta.' if is_edit else 'Describí tu problema con detalle para obtener mejores respuestas.' }}</p>
     </div>
   </div>
 
-  <form method="POST" action="{{ url_for('question_new') }}" data-validate id="new-question-form" novalidate>
+  <form method="POST" action="{{ url_for('question_edit', question_id=edit_question.id) if is_edit else url_for('question_new') }}" data-validate id="new-question-form" novalidate>
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-    <input type="hidden" name="tags" id="tags-hidden" />
+    <input type="hidden" name="tags" id="tags-hidden" value="{{ current_tags }}" />
 
     <!-- ── TÍTULO ── -->
     <div class="form-card" style="margin-bottom:var(--space-5);">
@@ -30,14 +36,14 @@
           placeholder="Ej: ¿Cómo implementar el patrón Strategy en Python?"
           required
           aria-required="true"
-          maxlength="150"
-          data-maxlength="150"
+          maxlength="63"
+          data-maxlength="63"
           data-counter="title-counter"
-          value="{{ request.form.title | default(request.form.titulo | default('')) }}"
+          value="{{ current_title }}"
         />
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <span class="form-hint">Sé específico. Imaginá que le estás preguntando a un experto.</span>
-          <span id="title-counter" style="font-size:var(--text-xs);color:var(--text-muted);">0 / 150</span>
+          <span id="title-counter" style="font-size:var(--text-xs);color:var(--text-muted);">{{ current_title | length }} / 63</span>
         </div>
         <span class="form-error" id="q-title-error" role="alert"></span>
       </div>
@@ -70,10 +76,10 @@
             aria-required="true"
             data-maxlength="20000"
             data-counter="body-counter"
-          >{{ request.form.body | default(request.form.cuerpo | default('')) }}</textarea>
+          >{{ current_body }}</textarea>
           <div style="display:flex;justify-content:space-between;align-items:center;margin-top:var(--space-1);">
             <span class="form-hint">Podés usar Markdown: **negrita**, `código`, ### títulos</span>
-            <span id="body-counter" style="font-size:var(--text-xs);color:var(--text-muted);">0 / 20000</span>
+            <span id="body-counter" style="font-size:var(--text-xs);color:var(--text-muted);">{{ current_body | length }} / 20000</span>
           </div>
         </div>
 
@@ -101,19 +107,19 @@
             {% if cat_list %}
               {% for cat in cat_list %}
               {% set cat_name = cat.name if cat.name is defined else cat.nombre %}
-              <option value="{{ cat_name }}" {{ 'selected' if (request.form.category == cat_name or request.form.categoria == cat_name) }}>
+              <option value="{{ cat_name }}" {{ 'selected' if current_category == cat_name }}>
                 {{ cat_name }}
               </option>
               {% endfor %}
             {% else %}
-              <option value="backend">Backend</option>
-              <option value="frontend">Frontend</option>
-              <option value="base-de-datos">Base de datos</option>
-              <option value="algoritmos">Algoritmos</option>
-              <option value="devops">DevOps</option>
-              <option value="ia-ml">IA / ML</option>
-              <option value="seguridad">Seguridad</option>
-              <option value="general">General</option>
+              <option value="Backend" {{ 'selected' if current_category == 'Backend' }}>Backend</option>
+              <option value="Frontend" {{ 'selected' if current_category == 'Frontend' }}>Frontend</option>
+              <option value="Base de datos" {{ 'selected' if current_category == 'Base de datos' }}>Base de datos</option>
+              <option value="Algoritmos" {{ 'selected' if current_category == 'Algoritmos' }}>Algoritmos</option>
+              <option value="DevOps" {{ 'selected' if current_category == 'DevOps' }}>DevOps</option>
+              <option value="IA / ML" {{ 'selected' if current_category == 'IA / ML' }}>IA / ML</option>
+              <option value="Seguridad" {{ 'selected' if current_category == 'Seguridad' }}>Seguridad</option>
+              <option value="General" {{ 'selected' if current_category == 'General' }}>General</option>
             {% endif %}
           </select>
         </div>
@@ -181,9 +187,9 @@
 
     <!-- ── ACCIONES ── -->
     <div style="display:flex;gap:var(--space-3);justify-content:flex-end;align-items:center;">
-      <a href="{{ url_for('home') }}" class="btn btn-secondary" id="btn-cancel-new-q">Cancelar</a>
+      <a href="{{ url_for('question_detail', question_id=edit_question.id) if is_edit else url_for('home') }}" class="btn btn-secondary" id="btn-cancel-new-q">Cancelar</a>
       <button type="submit" class="btn btn-primary btn-lg" id="btn-publish-q">
-        Publicar pregunta
+        {{ 'Guardar cambios' if is_edit else 'Publicar pregunta' }}
       </button>
     </div>
 

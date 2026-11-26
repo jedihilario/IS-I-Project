@@ -9,9 +9,40 @@ from flask import jsonify, request, session
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from is_i_project.extensions import db
-from is_i_project.models import AI_Author, Author, Post, Question, Response, User, Vote
+from is_i_project.models import (
+    AI_Author,
+    Author,
+    Post,
+    Question,
+    Response,
+    Role,
+    User,
+    Vote,
+)
 
 PASSWORD_HASH_METHOD = "pbkdf2:sha256"
+
+
+class ControllerError(Exception):
+    """Error de dominio/validación reutilizable entre la API JSON y las vistas web."""
+
+    def __init__(self, message: str, status_code: int = 400) -> None:
+        super().__init__(message)
+        self.message = message
+        self.status_code = status_code
+
+
+def get_user_role_name(user: User | None) -> str:
+    if user is None or user.role_id is None:
+        return "usuario"
+    role = db.session.get(Role, user.role_id)
+    if role is None or not role.name:
+        return "usuario"
+    return role.name.strip().lower()
+
+
+def is_admin_user(user: User | None) -> bool:
+    return get_user_role_name(user) == "admin"
 
 
 def hash_password(password: str) -> str:

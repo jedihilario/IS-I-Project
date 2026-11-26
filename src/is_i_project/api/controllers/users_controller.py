@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from is_i_project.api.utils import (
+    ControllerError,
     error_response,
     get_json_body,
     hash_password,
@@ -12,18 +13,30 @@ from is_i_project.extensions import db
 from is_i_project.models import User
 
 
+def get_all_users() -> list[User]:
+    return list(
+        db.session.execute(db.select(User).order_by(User.id.asc())).scalars().all()
+    )
+
+
+def get_user_record(user_id: int) -> User:
+    user = db.session.get(User, user_id)
+    if user is None:
+        raise ControllerError("Usuario no encontrado", 404)
+    return user
+
+
 def list_users():
-    users_rows = db.session.execute(
-        db.select(User).order_by(User.id.asc())
-    ).scalars().all()
+    users_rows = get_all_users()
     users = [serialize_user_detail(user) for user in users_rows]
     return success_response({"users": users}, 200)
 
 
 def get_user(user_id: int):
-    user = db.session.get(User, user_id)
-    if user is None:
-        return error_response("Usuario no encontrado", 404)
+    try:
+        user = get_user_record(user_id)
+    except ControllerError as exc:
+        return error_response(exc.message, exc.status_code)
     return success_response({"user": serialize_user_detail(user)}, 200)
 
 

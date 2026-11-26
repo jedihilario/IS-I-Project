@@ -1,0 +1,105 @@
+name: Build Executables
+
+on:
+  push:
+    branches:
+      - main
+      - feature/executable
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build (${{ matrix.os_name }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os_name: linux
+            runner: ubuntu-latest
+            binary: is-i-project
+          - os_name: windows
+            runner: windows-latest
+            binary: is-i-project.exe
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up uv and Python
+        uses: astral-sh/setup-uv@v10.4.0
+        with:
+          version: "0.13.10"
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: uv sync --locked
+
+      - name: Build executable with PyInstaller
+        shell: bash
+        run: |
+          uv run pyinstaller --onefile --name is-i-project --paths src \
+            --add-data "src/is_i_project/templates:is_i_project/templates" \
+            --add-data "src/is_i_project/static:is_i_project/static" \
+            src/is_i_project/__main__.py
+
+      - name: Smoke test executable
+        shell: bash
+        env:
+          BINARY: ${{ matrix.binary }}
+        run: |
+          uv run python - <<'PY'
+          import os
+          import shutil
+          import subprocess
+          import tempfile
+          import time
+          import urllib.request
+          from pathlib import Path
+
+          with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
+              exe = Path(tmp) / os.environ["BINARY"]
+              shutil.copy2(Path("dist") / os.environ["BINARY"], exe)
+              env = {**os.environ, "PORT": "5078"}
+              proc = subprocess.Popen(
+                  [str(exe)],
+                  cwd=tmp,
+                  env=env,
+                  stdout=subprocess.DEVNULL,
+                  stderr=subprocess.DEVNULL,
+              )
+              try:
+                  for _ in range(40):
+                      try:
+                          with urllib.request.urlopen("http://127.0.0.1:5078/", timeout=2) as r:
+                              if r.status == 200:
+                                  break
+                      except Exception:
+                          time.sleep(1)
+                  else:
+                      raise RuntimeError("Server did not start in time")
+                  with urllib.request.urlopen("http://127.0.0.1:5078/api/questions", timeout=5) as r:
+                      assert r.status == 200
+                  assert (Path(tmp) / "dev.db").is_file()
+              finally:
+                  if os.name == "nt":
+                      subprocess.run(
+                          ["taskkill", "/F", "/T", "/PID", str(proc.pid)],
+                          check=False,
+                          stdout=subprocess.DEVNULL,
+                          stderr=subprocess.DEVNULL,
+                      )
+                  else:
+                      proc.terminate()
+                  proc.wait(timeout=10)
+          PY
+
+      - name: Upload executable artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: is-i-project-${{ matrix.os_name }}
+          path: dist/${{ matrix.binary }}
+          if-no-files-found: error

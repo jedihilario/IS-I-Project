@@ -24,3 +24,9 @@ def create_app(config_name: str | None = None) -> Flask:
     register_web(app)
 
     return app
+
+
+def main() -> None:
+    '''Punto de entrada de la aplicación: levanta el servidor web.'''
+    app = create_app()
+    app.run(port=int(app.config['FLASK_RUN_PORT']), debug=False)
